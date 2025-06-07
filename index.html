@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slot Machine Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }        .game-container {
+            background: linear-gradient(145deg, #2c3e50, #34495e);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #f39c12;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        #slotCanvas {
+            border: 5px solid #f39c12;
+            border-radius: 15px;
+            background: #1a1a1a;
+            margin: 20px 0;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .coin-display {
+            background: linear-gradient(145deg, #f39c12, #e67e22);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        .spin-button {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .spin-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .spin-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .reset-button {
+            background: linear-gradient(145deg, #27ae60, #229954);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.9em;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        .reset-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }        .message {
+            color: #f39c12;
+            font-size: 1.0em;
+            font-weight: bold;
+            min-height: 30px;
+            max-height: 120px;
+            margin: 15px 0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            width: 100%;
+            line-height: 1.2;
+            overflow-y: auto;
+            padding: 8px;
+            box-sizing: border-box;
+            background: rgba(52, 73, 94, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(243, 156, 18, 0.2);
+        }
+
+        .bet-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .bet-button {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .bet-button:hover {
+            transform: translateY(-1px);
+        }        .bet-display {
+            color: white;
+            font-weight: bold;
+            padding: 8px 15px;
+            background: rgba(52, 73, 94, 0.8);
+            border-radius: 15px;
+        }
+
+        .payline-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .payline-button {
+            background: linear-gradient(145deg, #9b59b6, #8e44ad);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .payline-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .payline-display {
+            color: white;
+            font-weight: bold;
+            padding: 8px 15px;
+            background: rgba(155, 89, 182, 0.8);
+            border-radius: 15px;
+        }
+
+        .total-bet-display {
+            color: #e74c3c;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin: 10px 0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .config-controls {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(243, 156, 18, 0.3);
+        }
+
+        .config-controls h3 {
+            color: #f39c12;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .config-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .config-button {
+            background: linear-gradient(145deg, #95a5a6, #7f8c8d);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }        .config-button:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(145deg, #bdc3c7, #95a5a6);
+        }
+          /* Fullscreen mode styles */
+        .fullscreen-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 1000;
+            overflow: auto;
+        }
+        
+        .fullscreen-mode .game-container {
+            max-width: none;
+            width: calc(100vw - 40px);
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .fullscreen-mode #slotCanvas {
+            max-width: calc(100vw - 80px);
+            max-height: calc(100vh - 300px);
+        }
+          /* Hide detailed controls in fullscreen */
+        .fullscreen-mode .win-rate-controls,
+        .fullscreen-mode .wild-controls,
+        .fullscreen-mode .min-win-controls,
+        .fullscreen-mode .config-controls,
+        .fullscreen-mode .bet-controls,
+        .fullscreen-mode .payline-controls,
+        .fullscreen-mode .total-bet-display {
+            display: none !important;
+        }
+        
+        /* Show simplified coin display in fullscreen */
+        .fullscreen-mode .coin-display {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            font-size: 1.5em;
+            padding: 20px 30px;
+        }
+        
+        /* Fullscreen message positioning */
+        .fullscreen-mode .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            z-index: 1001;
+            background: rgba(44, 62, 80, 0.9);
+            border: 2px solid rgba(243, 156, 18, 0.5);
+        }
+          .fullscreen-mode .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(44, 62, 80, 0.9);
+            padding: 15px 30px;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        /* Show coin controls only in fullscreen */
+        .fullscreen-mode .fullscreen-coin-controls {
+            display: flex !important;
+            gap: 10px;
+            margin-left: 15px;
+            padding-left: 15px;
+            border-left: 2px solid rgba(243, 156, 18, 0.3);
+        }
+        
+        /* Hide image toggle in fullscreen to save space */
+        .fullscreen-mode .image-toggle-button {
+            display: none;
+        }
+        
+        .fullscreen-button, .image-toggle-button {
+            background: linear-gradient(145deg, #8e44ad, #9b59b6);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.9em;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(142, 68, 173, 0.3);
+            margin: 0 5px;
+        }
+        
+        .fullscreen-button:hover, .image-toggle-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(142, 68, 173, 0.4);
+        }.win-rate-controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(52, 73, 94, 0.8);
+            border-radius: 15px;
+            border: 2px solid rgba(243, 156, 18, 0.3);
+        }
+
+        .wild-controls, .min-win-controls {
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(52, 73, 94, 0.6);
+            border-radius: 12px;
+            border: 2px solid rgba(243, 156, 18, 0.2);
+        }
+
+        .win-rate-label {
+            color: #f39c12;
+            font-weight: bold;
+            font-size: 1.1em;
+            display: block;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .win-rate-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #e74c3c 0%, #f39c12 50%, #27ae60 100%);
+            outline: none;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .win-rate-slider:hover {
+            opacity: 1;
+        }
+
+        .win-rate-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #f39c12;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .win-rate-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #f39c12;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }        .win-rate-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #bdc3c7;
+        }
+
+        /* Toast Notification System */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 350px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: linear-gradient(145deg, #2c3e50, #34495e);
+            border: 2px solid #f39c12;
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: white;
+            font-weight: bold;
+            font-size: 1em;
+            line-height: 1.3;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .toast.hide {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+
+        .toast.win {
+            border-color: #27ae60;
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            box-shadow: 0 10px 30px rgba(39, 174, 96, 0.4);
+        }
+
+        .toast.error {
+            border-color: #e74c3c;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.4);
+        }
+
+        .toast.info {
+            border-color: #3498db;
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.4);
+        }
+
+        .toast.warning {
+            border-color: #f39c12;
+            background: linear-gradient(145deg, #f39c12, #e67e22);
+            box-shadow: 0 10px 30px rgba(243, 156, 18, 0.4);
+        }
+
+        .toast::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+            width: 100%;
+            animation: toast-shimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes toast-shimmer {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Pulse effect for win toasts */
+        .toast.win {
+            animation: toast-pulse 0.6s ease-in-out;
+        }
+
+        @keyframes toast-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Shake effect for error toasts */
+        .toast.error {
+            animation: toast-shake 0.5s ease-in-out;
+        }
+
+        @keyframes toast-shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Fullscreen mode toast positioning */
+        .fullscreen-mode .toast-container {
+            top: 100px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <div class="game-container">
+        <h1>🎰 SLOT MACHINE 🎰</h1>
+          <div class="coin-display">
+            Coins: <span id="coinCount">1000</span>
+        </div>
+        
+        <div class="bet-controls">
+            <button class="bet-button" onclick="changeBet(-1)">-</button>
+            <div class="bet-display">Bet: <span id="betAmount">10</span></div>
+            <button class="bet-button" onclick="changeBet(1)">+</button>
+        </div>
+
+        <div class="payline-controls">
+            <button class="payline-button" onclick="changePaylines(-1)">-</button>
+            <div class="payline-display">Lines: <span id="paylineCount">1</span>/<span id="maxPaylines">9</span></div>
+            <button class="payline-button" onclick="changePaylines(1)">+</button>
+        </div>        <div class="total-bet-display">
+            Total Bet: <span id="totalBet">10</span> coins
+        </div>        <div class="win-rate-controls">
+            <label for="winRateSlider" class="win-rate-label">Win Rate: <span id="winRateValue">50</span>%</label>
+            <input type="range" id="winRateSlider" min="0" max="100" value="50" 
+                   class="win-rate-slider" onchange="changeWinRate(this.value)" oninput="changeWinRate(this.value)">
+            <div class="win-rate-labels">
+                <span>Hard (0%)</span>
+                <span>Easy (100%)</span>
+            </div>
+        </div>
+
+        <div class="wild-controls">
+            <label for="wildRaritySlider" class="win-rate-label">Wild Rarity: <span id="wildRarityValue">5</span>%</label>
+            <input type="range" id="wildRaritySlider" min="0" max="20" value="5" step="1"
+                   class="win-rate-slider" onchange="changeWildRarity(this.value)" oninput="changeWildRarity(this.value)">
+            <div class="win-rate-labels">
+                <span>No Wilds (0%)</span>
+                <span>Many Wilds (20%)</span>
+            </div>
+        </div>
+
+        <div class="min-win-controls">
+            <label for="minWinSlider" class="win-rate-label">Min Win Length: <span id="minWinValue">3</span> symbols</label>
+            <input type="range" id="minWinSlider" min="2" max="6" value="3" step="1"
+                   class="win-rate-slider" onchange="changeMinWinLength(this.value)" oninput="changeMinWinLength(this.value)">
+            <div class="win-rate-labels">
+                <span>Easy (2)</span>
+                <span>Hard (6)</span>
+            </div>
+        </div>
+
+        <canvas id="slotCanvas" width="600" height="400"></canvas>
+        
+        <div class="message" id="message"></div>          <div class="controls">
+            <button class="spin-button" id="spinButton" onclick="spin()">SPIN!</button>
+            <button class="reset-button" onclick="resetCoins()">Reset Game</button>
+            <button class="fullscreen-button" id="fullscreenButton" onclick="toggleFullscreen()">Fullscreen</button>
+            <button class="image-toggle-button" id="imageToggleButton" onclick="toggleImages()">Use Images</button>
+            
+            <!-- Coin management buttons for fullscreen -->
+            <div class="fullscreen-coin-controls" style="display: none;">
+                <button class="bet-button" onclick="addCoins(100)">+100 Coins</button>
+                <button class="bet-button" onclick="addCoins(500)">+500 Coins</button>
+                <button class="bet-button" onclick="addCoins(1000)">+1000 Coins</button>
+            </div>
+        </div>
+
+        <div class="config-controls">
+            <h3>Quick Configurations:</h3>
+            <div class="config-buttons">
+                <button class="config-button" onclick="reconfigure(3, 3)">3x3 Grid</button>
+                <button class="config-button" onclick="reconfigure(5, 3)">5x3 Classic</button>
+                <button class="config-button" onclick="reconfigure(5, 4)">5x4 Extended</button>
+                <button class="config-button" onclick="reconfigure(6, 4)">6x4 Mega</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="slot-machine.js"></script>
+</body>
+</html>
