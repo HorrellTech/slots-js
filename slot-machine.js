@@ -13,7 +13,7 @@ class SlotMachine {
         // New reel mechanics variables
         this.spinSpeed = 15; // Base spin speed (adjustable)
         this.randomizeReelOnSpin = false; // Set to true for random reels each spin, false for physical slot behavior
-        this.reelStripLength = 100; // Length of each reel strip
+        this.reelStripLength = 6; // Length of each reel strip
         
 
         // Image support configuration
@@ -108,19 +108,24 @@ class SlotMachine {
     }
 
     initializeReels() {
-        // Generate pre-determined reel strips (like physical slot machines)
-        this.generateReelStrips();
+        // Initialize reel animation states FIRST
+        this.reelPositions = [];
+        this.reelSpeeds = [];
+        this.reelOffsets = [];
+        this.spinStartTimes = [];
         
-        // Initialize grid from current reel positions
-        this.updateGridFromReels();
-
-        // Initialize reel animation states
         for (let i = 0; i < this.config.reels; i++) {
             this.reelPositions[i] = Math.floor(Math.random() * this.reelStripLength);
             this.reelSpeeds[i] = 0;
             this.reelOffsets[i] = 0;
             this.spinStartTimes[i] = 0;
         }
+
+        // Generate pre-determined reel strips (like physical slot machines)
+        this.generateReelStrips();
+        
+        // Initialize grid from current reel positions
+        this.updateGridFromReels();
     }
 
     generateReelStrips() {
@@ -135,14 +140,14 @@ class SlotMachine {
                     strip.push(this.getBasicRandomSymbol());
                 }
             } else {
-                // Generate fixed strip with intelligent win rate consideration
+                // Generate strip - first reel is always random, others can be influenced by win rate
                 for (let i = 0; i < this.reelStripLength; i++) {
-                    if (i === 0 || this.currentPaylineCount === 0) {
-                        // First symbol or no paylines - use basic probability
+                    if (reelIndex === 0) {
+                        // First reel is always random
                         strip.push(this.getBasicRandomSymbol());
                     } else {
-                        // Consider win rate for subsequent symbols
-                        strip.push(this.getRandomSymbolForStrip(reelIndex, i, strip));
+                        // Subsequent reels can be influenced by win rate for horizontal matching
+                        strip.push(this.getSymbolWithHorizontalInfluence(reelIndex, i));
                     }
                 }
             }
@@ -163,7 +168,7 @@ class SlotMachine {
                 const shouldMatch = Math.random() < winRateNormalized;
                 
                 if (shouldMatch) {
-                    return prevSymbol;
+                    return { ...prevSymbol }; // Return a copy
                 }
             }
         }
@@ -176,8 +181,14 @@ class SlotMachine {
         for (let row = 0; row < this.config.rows; row++) {
             this.grid[row] = [];
             for (let reel = 0; reel < this.config.reels; reel++) {
+                // Ensure reelPositions[reel] is a valid number
+                if (typeof this.reelPositions[reel] !== 'number' || isNaN(this.reelPositions[reel])) {
+                    console.warn(`Invalid reel position for reel ${reel}, resetting to 0`);
+                    this.reelPositions[reel] = 0;
+                }
+                
                 const stripPosition = (this.reelPositions[reel] + row) % this.reelStripLength;
-                const symbol = this.reelStrips[reel][stripPosition];
+                const symbol = this.reelStrips[reel] && this.reelStrips[reel][stripPosition];
                 
                 // Safety check to ensure symbol exists
                 if (!symbol) {
@@ -741,6 +752,11 @@ class SlotMachine {
         const maxSpin = 50; // Maximum symbols to spin through
         const spinDistance = minSpin + Math.random() * (maxSpin - minSpin);
         this.reelPositions[reelIndex] = (this.reelPositions[reelIndex] + Math.floor(spinDistance)) % this.reelStripLength;
+
+        // Apply win rate logic AFTER reel stops - affect horizontal neighbors (next reel)
+        if (reelIndex < this.config.reels - 1) { // Not the last reel
+            this.applyWinRateToNextReel(reelIndex);
+        }
 
         // Update grid only when reel stops (not during animation)
         this.updateGridFromReels();
@@ -1473,6 +1489,83 @@ class SlotMachine {
             this.draw(); // Redraw with new paylines
         }
     } 
+
+    applyWinRateToNextReel(currentReelIndex) {
+        if (this.winRate === 0 || this.currentPaylineCount === 0) return;
+
+        const nextReelIndex = currentReelIndex + 1;
+        if (nextReelIndex >= this.config.reels) return;
+
+        const winRateNormalized = this.winRate / 100.0;
+
+        // Get symbols from current reel that just stopped (visible symbols only)
+        for (let row = 0; row < this.config.rows; row++) {
+            const currentStripPosition = (this.reelPositions[currentReelIndex] + row) % this.reelStripLength;
+            const currentSymbol = this.reelStrips[currentReelIndex][currentStripPosition];
+            
+            // Skip wild and scatter symbols - we want to create regular symbol matches
+            if (!currentSymbol || currentSymbol.isWild || currentSymbol.isScatter) continue;
+
+            // Check if we should influence the next reel based on win rate
+            const shouldInfluence = Math.random() < winRateNormalized;
+            
+            if (shouldInfluence) {
+                // Determine target positions in next reel (same row, row above, row below)
+                const targetRows = [row]; // Always include same row
+                if (row > 0) targetRows.push(row - 1); // Row above if exists
+                if (row < this.config.rows - 1) targetRows.push(row + 1); // Row below if exists
+                
+                // Choose one of the target rows randomly
+                const targetRow = targetRows[Math.floor(Math.random() * targetRows.length)];
+                
+                // Calculate the strip position for this target row in next reel
+                const nextReelStripPosition = (this.reelPositions[nextReelIndex] + targetRow) % this.reelStripLength;
+                
+                // Replace the symbol at this position with a matching one (create horizontal match)
+                this.reelStrips[nextReelIndex][nextReelStripPosition] = { ...currentSymbol };
+                
+                // At 100% win rate, also influence nearby positions for stronger effect
+                if (this.winRate >= 90) {
+                    const nearbyPositions = [
+                        (nextReelStripPosition - 1 + this.reelStripLength) % this.reelStripLength,
+                        (nextReelStripPosition + 1) % this.reelStripLength
+                    ];
+                    
+                    for (const pos of nearbyPositions) {
+                        if (Math.random() < 0.7) { // 70% chance for nearby positions at high win rate
+                            this.reelStrips[nextReelIndex][pos] = { ...currentSymbol };
+                        }
+                    }
+                }
+                
+                // Debug log to see what's happening
+                console.log(`Win Rate ${this.winRate}%: Reel ${currentReelIndex} row ${row} (${currentSymbol.name}) -> Reel ${nextReelIndex} row ${targetRow}`);
+            }
+        }
+    }
+
+    getSymbolWithHorizontalInfluence(reelIndex, stripPosition) {
+        // Only apply horizontal influence if win rate > 0 and we have a previous reel
+        if (this.winRate > 0 && reelIndex > 0 && this.reelStrips[reelIndex - 1]) {
+            const winRateNormalized = this.winRate / 100.0;
+            const prevReelStrip = this.reelStrips[reelIndex - 1];
+            
+            // Look at the corresponding position in the previous reel
+            const prevSymbol = prevReelStrip[stripPosition % prevReelStrip.length];
+            
+            // If previous symbol exists and isn't wild/scatter, consider matching it
+            if (prevSymbol && !prevSymbol.isWild && !prevSymbol.isScatter) {
+                const shouldMatch = Math.random() < winRateNormalized;
+                
+                if (shouldMatch) {
+                    return { ...prevSymbol }; // Create horizontal match
+                }
+            }
+        }
+        
+        // Default to random symbol
+        return this.getBasicRandomSymbol();
+    }
     
     changeWinRate(value) {
         if (this.isSpinning) return;
@@ -1480,30 +1573,35 @@ class SlotMachine {
         this.winRate = parseInt(value);
         this.updateDisplay();
 
+        // Regenerate reel strips to apply new win rate immediately
+        this.generateReelStrips();
+        this.updateGridFromReels();
+        this.draw();
+
         let message = `🎰 Win Rate: ${this.winRate}%`;
         let description = "";
         let toastType = 'info';
 
         if (this.winRate === 0) {
-            description = " - Never match adjacent cells";
+            description = " - No horizontal symbol matching";
             toastType = 'error';
         } else if (this.winRate <= 20) {
-            description = " - Rarely match adjacent cells";
+            description = " - Rare horizontal matches";
             toastType = 'error';
         } else if (this.winRate <= 40) {
-            description = " - Sometimes match adjacent cells";
+            description = " - Some horizontal matches";
             toastType = 'warning';
         } else if (this.winRate <= 60) {
-            description = " - Balanced matching";
+            description = " - Balanced horizontal matching";
             toastType = 'info';
         } else if (this.winRate <= 80) {
-            description = " - Often match adjacent cells";
+            description = " - Frequent horizontal matches";
             toastType = 'warning';
         } else if (this.winRate < 100) {
-            description = " - Almost always match adjacent cells";
+            description = " - Very frequent horizontal matches";
             toastType = 'win';
         } else {
-            description = " - Always match adjacent cells";
+            description = " - Always create horizontal matches when possible";
             toastType = 'win';
         }
 

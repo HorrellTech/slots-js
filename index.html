@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slot Machine Game</title>
+    <title>Basic Fruit Slot Machine Game</title>
     <style>
         body {
             margin: 0;
@@ -528,7 +528,7 @@
             </div>
         </div>
 
-        <div class="wild-controls">
+        <!--div class="wild-controls">
             <label for="wildRaritySlider" class="win-rate-label">Wild Rarity: <span id="wildRarityValue">5</span>%</label>
             <input type="range" id="wildRaritySlider" min="0" max="20" value="5" step="1"
                    class="win-rate-slider" onchange="changeWildRarity(this.value)" oninput="changeWildRarity(this.value)">
@@ -536,7 +536,7 @@
                 <span>No Wilds (0%)</span>
                 <span>Many Wilds (20%)</span>
             </div>
-        </div>
+        </div-->
 
         <div class="min-win-controls">
             <label for="minWinSlider" class="win-rate-label">Min Win Length: <span id="minWinValue">3</span> symbols</label>
@@ -558,9 +558,9 @@
             
             <!-- Coin management buttons for fullscreen -->
             <div class="fullscreen-coin-controls" style="display: none;">
-                <button class="bet-button" onclick="addCoins(100)">+100 Coins</button>
-                <button class="bet-button" onclick="addCoins(500)">+500 Coins</button>
-                <button class="bet-button" onclick="addCoins(1000)">+1000 Coins</button>
+                <button class="bet-button" onclick="addCoins(100)">Add 100 Coins</button>
+                <button class="bet-button" onclick="addCoins(500)">Add 500 Coins</button>
+                <button class="bet-button" onclick="addCoins(1000)">Add 1000 Coins</button>
             </div>
         </div>
 
