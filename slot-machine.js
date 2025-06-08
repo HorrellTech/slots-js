@@ -862,6 +862,61 @@ class SlotMachine {
             }
         }
 
+        if (rows >= 3 && reels >= 5) {
+        // M-shaped pattern with middle on second row (for a 5x3 grid: bottom-top-middle-top-bottom)
+        const mShapeMidRow = [
+            { reel: 0, row: rows - 1 }, // Bottom row
+            { reel: 1, row: 0 },        // Top row
+            { reel: 2, row: 1 },        // Middle row (second row, not midRow)
+            { reel: 3, row: 0 },        // Top row
+            { reel: 4, row: rows - 1 }  // Bottom row
+        ].filter(p => p.row < rows);    // Ensure row is valid
+        
+        if (mShapeMidRow.length >= Math.min(3, reels)) {
+            lines.push({
+                id: 'm_shape_mid',
+                name: 'M-Shape Mid',
+                positions: mShapeMidRow.slice(0, reels),
+                type: 'm-shape-mid',
+                color: this.getPaylineColor(lines.length)
+            });
+        }
+    }
+
+        if (rows >= 2 && reels >= 3) {
+            // Simple zigzag between row 0 and row 1
+            const squareWave = [];
+            for (let i = 0; i < reels; i++) {
+                squareWave.push({ reel: i, row: i % 2 });
+            }
+            
+            if (squareWave.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'square_wave',
+                    name: 'Square Wave',
+                    positions: squareWave,
+                    type: 'square-wave',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
+            
+            // Inverted square wave (starting with row 1)
+            const invSquareWave = [];
+            for (let i = 0; i < reels; i++) {
+                invSquareWave.push({ reel: i, row: (i + 1) % 2 });
+            }
+            
+            if (invSquareWave.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'inv_square_wave',
+                    name: 'Inv Square Wave',
+                    positions: invSquareWave,
+                    type: 'inv-square-wave',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
+        }
+
         // Step patterns for additional variety
         if (rows >= 3 && reels >= 5) {
             const midRow = Math.floor(rows / 2);
@@ -2365,7 +2420,7 @@ class SlotMachine {
 
         return { payout: 0, wildsUsed: 0 };
     }
-    
+
     animateWin() {
         // Flash winning paylines
         let flashCount = 0;
