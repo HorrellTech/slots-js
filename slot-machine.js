@@ -21,6 +21,7 @@ class SlotMachine {
         this.audioLoaded = false;
         this.hasInteracted = false; // For handling audio autoplay restrictions
         this.activeReelSpinSound = null; // To manage the looping reel spin sound
+        this.scatterSoundCount = 0; // Track scatter sounds for pitch shifting
 
         // Mobile detection
         this.isMobile = this.detectMobile();
@@ -573,60 +574,61 @@ class SlotMachine {
     }
 
     updateGridFromReels() {
-    this.grid = [];
-    for (let row = 0; row < this.config.rows; row++) {
-        this.grid[row] = [];
-        for (let reel = 0; reel < this.config.reels; reel++) {
-            // Ensure reelPositions[reel] is a valid number and integer
-            if (typeof this.reelPositions[reel] !== 'number' || isNaN(this.reelPositions[reel])) {
-                console.warn(`Invalid reel position for reel ${reel}, resetting to 0`);
-                this.reelPositions[reel] = 0;
-            }
-
-            // Ensure position is an integer for consistent indexing
-            this.reelPositions[reel] = Math.floor(this.reelPositions[reel]);
-
-            // Calculate strip position with proper bounds checking
-            // This MUST match exactly what drawReel uses for stopped reels
-            const stripPosition = (Math.floor(this.reelPositions[reel]) + row) % this.reelStripLength;
-
-            // Ensure stripPosition is a valid integer
-            const safeStripPosition = Math.max(0, Math.floor(stripPosition));
-
-            // Get symbol with bounds checking
-            let symbol = null;
-            if (this.reelStrips[reel] && this.reelStrips[reel][safeStripPosition]) {
-                symbol = this.reelStrips[reel][safeStripPosition];
-            }
-
-            // Safety check to ensure symbol exists
-            if (!symbol || !symbol.id) {
-                console.warn(`Missing symbol at reel ${reel}, position ${safeStripPosition}, generating new symbol for grid display`);
-                symbol = this.getBasicRandomSymbol();
-
-                // Store the new symbol in the strip to maintain consistency
-                if (this.reelStrips[reel]) {
-                    this.reelStrips[reel][safeStripPosition] = symbol;
+        this.grid = [];
+        for (let row = 0; row < this.config.rows; row++) {
+            this.grid[row] = [];
+            for (let reel = 0; reel < this.config.reels; reel++) {
+                // Ensure reelPositions[reel] is a valid number and integer
+                if (typeof this.reelPositions[reel] !== 'number' || isNaN(this.reelPositions[reel])) {
+                    console.warn(`Invalid reel position for reel ${reel}, resetting to 0`);
+                    this.reelPositions[reel] = 0;
                 }
-            }
 
-            // Ensure we have a valid symbol before assigning
-            this.grid[row][reel] = symbol;
+                // Ensure position is an integer for consistent indexing
+                this.reelPositions[reel] = Math.floor(this.reelPositions[reel]);
+
+                // Calculate strip position with proper bounds checking
+                // This MUST match exactly what drawReel uses for stopped reels
+                const stripPosition = (Math.floor(this.reelPositions[reel]) + row) % this.reelStripLength;
+
+                // Ensure stripPosition is a valid integer
+                const safeStripPosition = Math.max(0, Math.floor(stripPosition));
+
+                // Get symbol with bounds checking
+                let symbol = null;
+                if (this.reelStrips[reel] && this.reelStrips[reel][safeStripPosition]) {
+                    symbol = this.reelStrips[reel][safeStripPosition];
+                }
+
+                // Safety check to ensure symbol exists
+                if (!symbol || !symbol.id) {
+                    console.warn(`Missing symbol at reel ${reel}, position ${safeStripPosition}, generating new symbol for grid display`);
+                    symbol = this.getBasicRandomSymbol();
+
+                    // Store the new symbol in the strip to maintain consistency
+                    if (this.reelStrips[reel]) {
+                        this.reelStrips[reel][safeStripPosition] = symbol;
+                    }
+                }
+
+                // Ensure we have a valid symbol before assigning
+                this.grid[row][reel] = symbol;
+            }
         }
+
+        // Only log grid occasionally for debugging (comment out for production)
+        // if (Math.random() < 0.1) { // Only log 10% of the time
+        //     console.log('Grid updated from reels:');
+        //     for (let row = 0; row < this.config.rows; row++) {
+        //         const rowSymbols = [];
+        //         for (let reel = 0; reel < this.config.reels; reel++) {
+        //             const symbol = this.grid[row][reel];
+        //             rowSymbols.push(symbol.name || symbol.id || 'undefined');
+        //         }
+        //         console.log(`Row ${row}:`, rowSymbols);
+        //     }
+        // }
     }
-    
-    // DEBUG: Log grid update
-    console.log('Grid updated from reels:');
-    console.log('Reel positions:', this.reelPositions);
-    for (let row = 0; row < this.config.rows; row++) {
-        const rowSymbols = [];
-        for (let reel = 0; reel < this.config.reels; reel++) {
-            const symbol = this.grid[row][reel];
-            rowSymbols.push(symbol.name || symbol.id || 'undefined');
-        }
-        console.log(`Row ${row}:`, rowSymbols);
-    }
-}
 
     // Load images for symbols if image mode is enabled
     async loadImages() {
@@ -665,7 +667,8 @@ class SlotMachine {
             winSmall: 'audio/winSmall.wav',
             winBig: 'audio/slotWin.mp3',
             coin: 'audio/coinHandling.wav',
-            slotFeature: 'audio/slotFeature.mp3'
+            slotFeature: 'audio/slotFeature.mp3',
+            scatterHit: 'audio/scatterHit.mp3'
         };
 
         let soundsToLoad = Object.keys(soundFiles).length;
@@ -1375,18 +1378,27 @@ class SlotMachine {
         return this.getBasicRandomSymbol();
     }
 
-    playSound(soundName, isLooping = false) { // isLooping parameter is indicative, actual loop set on Audio obj
+    playSound(soundName, isLooping = false, pitchShift = 0) {
         if (!this.audioLoaded || !this.sounds[soundName]) {
             if (!this.sounds[soundName]) console.warn(`Sound not found: ${soundName}`);
             return null;
         }
         // For non-background music, require interaction
         if (soundName !== 'bgMusic' && !this.hasInteracted) {
-            // console.log(`Sound ${soundName} skipped: User has not interacted yet.`);
             return null;
         }
 
-        const audio = this.sounds[soundName];
+        // Create a new Audio instance for pitch-shifted sounds to avoid conflicts
+        let audio;
+        if (pitchShift !== 0) {
+            audio = new Audio(this.sounds[soundName].src);
+            // Apply pitch shift using playbackRate (each octave up doubles the rate)
+            audio.playbackRate = Math.pow(2, pitchShift);
+        } else {
+            audio = this.sounds[soundName];
+            audio.playbackRate = 1.0; // Reset pitch for normal sounds
+        }
+
         audio.volume = (soundName === 'bgMusic') ? this.bgMusicVolume : this.sfxVolume;
         audio.currentTime = 0;
 
@@ -1705,6 +1717,9 @@ class SlotMachine {
         if (this.isSpinning) return;
         this.handleFirstInteraction();
 
+        // Reset scatter sound pitch counter when starting a new spin
+        this.scatterSoundCount = 0;
+
         if (this.isInFreeSpins && this.freeSpinsCount > 0) {
             this.currentFreeSpinNumber++;
             // No balance check or deduction for free spins
@@ -1835,7 +1850,9 @@ class SlotMachine {
 
                 if (this.reelEasingFactors[i] < 0.15) {
                     this.reelAnimationState[i] = 'settling';
-                    this.playSound('reelStop');
+
+                    // Check for scatter symbols on this reel before playing stop sound
+                    this.checkAndPlayReelStopSound(i);
 
                     const originalSpinDirection = Math.sign(this.reelSpeeds[i]) || Math.sign(this.spinSpeed) || 1;
 
@@ -1848,9 +1865,9 @@ class SlotMachine {
                     visualContinuousPosition_endEase = (visualContinuousPosition_endEase % this.reelStripLength + this.reelStripLength) % this.reelStripLength;
 
                     let targetSymbolIndex;
-                    if (originalSpinDirection > 0) { // Spinning "down" (symbols appear to move up the screen)
+                    if (originalSpinDirection > 0) {
                         targetSymbolIndex = Math.ceil(visualContinuousPosition_endEase);
-                    } else { // Spinning "up" (symbols appear to move down the screen) or stationary
+                    } else {
                         targetSymbolIndex = Math.floor(visualContinuousPosition_endEase);
                     }
                     targetSymbolIndex = (targetSymbolIndex % this.reelStripLength + this.reelStripLength) % this.reelStripLength;
@@ -1926,37 +1943,59 @@ class SlotMachine {
                 this.stopSound('reelSpin');
             }
             this.updateGridFromReels();
-            this.checkWin(); // Process wins and potentially award/update free spins
-            this.isSpinning = false; // Mark as not spinning *before* deciding next action
+            this.checkWin();
+            this.isSpinning = false;
 
             const spinButton = document.getElementById('spinButton');
 
             if (this.isInFreeSpins) {
                 if (this.freeSpinsCount > 0) {
-                    // Still have free spins left
-                    if (spinButton) spinButton.disabled = true; // Keep disabled
+                    if (spinButton) spinButton.disabled = true;
                     this.showToast(`Next free spin starting... (${this.freeSpinsCount} remaining)`, 'info', 2000);
                     setTimeout(() => {
-                        if (this.isInFreeSpins && this.freeSpinsCount > 0) { // Double check state
+                        if (this.isInFreeSpins && this.freeSpinsCount > 0) {
                             this.spin();
-                        } else { // Free spins might have ended due to an edge case
+                        } else {
                             this.isInFreeSpins = false;
                             if (spinButton) spinButton.disabled = false;
-                            this.updateDisplay(); // Update to hide free spin display
+                            this.updateDisplay();
                         }
-                    }, 2500); // Delay for win animations/toasts
+                    }, 2500);
                 } else {
-                    // freeSpinsCount is 0 (or less, if something went wrong), so free spins session just ended
                     this.isInFreeSpins = false;
-                    // totalFreeSpinsAwarded and currentFreeSpinNumber retain values from the completed session for one last display update
                     this.showToast("🎉 Free Spins Finished! 🎉 Return to normal play.", 'win', 4000);
                     if (spinButton) spinButton.disabled = false;
                 }
             } else {
-                // Not in free spins (either never was, or just finished)
                 if (spinButton) spinButton.disabled = false;
             }
-            this.updateDisplay(); // Final display update
+            this.updateDisplay();
+        }
+    }
+
+    checkAndPlayReelStopSound(reelIndex) {
+        // Check if any scatter symbols are visible on this reel
+        let hasScatter = false;
+
+        for (let row = 0; row < this.config.rows; row++) {
+            const stripPosition = (Math.floor(this.reelPositions[reelIndex]) + row) % this.reelStripLength;
+            const safeStripPosition = Math.max(0, Math.floor(stripPosition));
+
+            if (this.reelStrips[reelIndex] && this.reelStrips[reelIndex][safeStripPosition]) {
+                const symbol = this.reelStrips[reelIndex][safeStripPosition];
+                if (symbol && symbol.isScatter) {
+                    hasScatter = true;
+                    // Play scatter hit sound with pitch shift based on count
+                    this.playSound('scatterHit', false, this.scatterSoundCount);
+                    this.scatterSoundCount++; // Increment for next scatter
+                    break; // Only play one scatter sound per reel
+                }
+            }
+        }
+
+        // If no scatter found, play normal reel stop sound
+        if (!hasScatter) {
+            this.playSound('reelStop');
         }
     }
 
@@ -2381,7 +2420,11 @@ class SlotMachine {
         else if (count === 5) multiplier = 5;
         else if (count >= 6) multiplier = 8;
 
-        return Math.floor(symbol.value * multiplier * this.betAmount);
+        // Calculate win with minimum payout to prevent 0 wins
+        const baseWin = symbol.value * multiplier * this.betAmount;
+
+        // Ensure minimum win of 1 cent if there's a valid winning combination
+        return Math.max(0.01, Math.round(baseWin * 100) / 100);
     }
 
     checkWin() {
@@ -2616,9 +2659,14 @@ class SlotMachine {
 
         const firstSymbol = validSymbols[0];
 
+        if (firstSymbol.isScatter) {
+            // Scatters don't form payline wins
+            return bestMatch;
+        }
+
         if (firstSymbol.isWild) {
+            // If first symbol is wild, find the first non-wild symbol to use as target
             let targetSymbol = null;
-            // Try to find the first non-wild, non-scatter symbol on the line
             for (let i = 1; i < validSymbols.length; i++) {
                 if (validSymbols[i] && !validSymbols[i].isWild && !validSymbols[i].isScatter) {
                     targetSymbol = validSymbols[i];
@@ -2644,9 +2692,10 @@ class SlotMachine {
 
             // Count consecutive matches from the left
             for (let i = 0; i < validSymbols.length; i++) {
-                if (validSymbols[i] && targetSymbol && validSymbols[i].id === targetSymbol.id) {
+                const currentSymbol = validSymbols[i];
+                if (currentSymbol.id === targetSymbol.id) {
                     count++;
-                } else if (validSymbols[i] && validSymbols[i].isWild) {
+                } else if (currentSymbol.isWild) {
                     count++;
                     wildsUsedOnThisLine++;
                 } else {
@@ -2656,9 +2705,6 @@ class SlotMachine {
             }
             bestMatch = { count, symbol: targetSymbol, wildsUsed: wildsUsedOnThisLine };
 
-        } else if (firstSymbol.isScatter) {
-            // Scatters don't form payline wins
-            return bestMatch;
         } else {
             // Regular symbol - count consecutive matches from left
             let count = 0;
@@ -2667,9 +2713,10 @@ class SlotMachine {
 
             // Count consecutive matching symbols from the left
             for (let i = 0; i < validSymbols.length; i++) {
-                if (validSymbols[i] && validSymbols[i].id === targetSymbol.id) {
+                const currentSymbol = validSymbols[i];
+                if (currentSymbol.id === targetSymbol.id) {
                     count++;
-                } else if (validSymbols[i] && validSymbols[i].isWild) {
+                } else if (currentSymbol.isWild) {
                     count++;
                     wildsUsedOnThisLine++;
                 } else {
@@ -2704,26 +2751,36 @@ class SlotMachine {
 
         if (symbols.length < this.minWinLength) return { payout: 0, wildsUsed: 0 };
 
-        // DEBUG: Log the payline positions and symbols
-        console.log(`Checking payline ${payline.id}:`);
-        console.log('Positions:', payline.positions);
-        console.log('Symbols:', symbols.map((s, i) => `[${payline.positions[i].reel},${payline.positions[i].row}]: ${s.name || s.id}`));
-        
-        // DEBUG: Log the entire grid for comparison
-        console.log('Current grid:');
-        for (let row = 0; row < this.config.rows; row++) {
-            const rowSymbols = [];
-            for (let reel = 0; reel < this.config.reels; reel++) {
-                const symbol = this.grid[row] && this.grid[row][reel] ? this.grid[row][reel] : 'undefined';
-                rowSymbols.push(symbol.name || symbol.id || 'undefined');
+        // Only log for debugging when needed (remove these console.logs in production)
+        if (symbols.length >= 3) {
+            // Check if first 3+ symbols could be a win before logging
+            const firstSymbol = symbols[0];
+            let potentialWin = false;
+
+            if (!firstSymbol.isScatter) {
+                let consecutiveCount = 1;
+                for (let i = 1; i < Math.min(symbols.length, 5); i++) {
+                    const nextSymbol = symbols[i];
+                    if ((firstSymbol.isWild || nextSymbol.isWild || firstSymbol.id === nextSymbol.id) &&
+                        !nextSymbol.isScatter) {
+                        consecutiveCount++;
+                    } else {
+                        break;
+                    }
+                }
+                if (consecutiveCount >= this.minWinLength) {
+                    potentialWin = true;
+                }
             }
-            console.log(`Row ${row}:`, rowSymbols);
+
+            // Only log if there's a potential win to reduce console spam
+            if (potentialWin) {
+                console.log(`Checking payline ${payline.id}:`);
+                console.log('Symbols:', symbols.map((s, i) => `[${payline.positions[i].reel},${payline.positions[i].row}]: ${s.name || s.id}`));
+            }
         }
 
         const bestMatch = this.findBestMatchFromLeft(symbols);
-
-        // DEBUG: Log the result
-        console.log(`Best match:`, bestMatch);
 
         // Check if we have a valid win
         if (bestMatch.symbol && bestMatch.symbol.value > 0 && bestMatch.count >= this.minWinLength) {
@@ -2736,9 +2793,13 @@ class SlotMachine {
                 multiplier *= 1.5;
             }
 
-            const payout = Math.floor(bestMatch.symbol.value * multiplier * this.betAmount);
+            // Use the same improved calculation as calculateWin method
+            const baseWin = bestMatch.symbol.value * multiplier * this.betAmount;
 
-            console.log(`Payout calculated: ${payout} (${bestMatch.count} symbols, multiplier: ${multiplier})`);
+            // Ensure minimum win of 1 cent if there's a valid winning combination
+            const payout = Math.max(0.01, Math.round(baseWin * 100) / 100);
+
+            console.log(`WIN! Payline ${payline.id}: ${bestMatch.count}x ${bestMatch.symbol.name} = ${payout}`);
 
             return { payout, wildsUsed: bestMatch.wildsUsed };
         }
