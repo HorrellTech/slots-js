@@ -14,6 +14,14 @@ class SlotMachine {
         this.scatterRarity = 0.03; // Scatter symbol rarity (3% default)
         this.isFullscreen = false; // Fullscreen mode toggle
 
+        // Audio properties
+        this.sounds = {};
+        this.bgMusicVolume = 0.3; // Default BG music volume (0 to 1)
+        this.sfxVolume = 0.6;   // Default SFX volume (0 to 1)
+        this.audioLoaded = false;
+        this.hasInteracted = false; // For handling audio autoplay restrictions
+        this.activeReelSpinSound = null; // To manage the looping reel spin sound
+
         // Mobile detection
         this.isMobile = this.detectMobile();
 
@@ -186,6 +194,7 @@ class SlotMachine {
         this.reelOffsets = [];
         this.spinStartTimes = [];
 
+        this.loadAudio(); // Load audio files
         this.initializeReels();
         this.loadImages(); // Load symbol images if using image mode
         this.updateDisplay();
@@ -379,8 +388,56 @@ class SlotMachine {
         this.draw();
     }
 
+    loadAudio() {
+        const soundFiles = {
+            bgMusic: 'audio/slotsBG.mp3',
+            spinStart: 'audio/slotPull.mp3',
+            reelSpin: 'audio/reelSpin.mp3',
+            reelStop: 'audio/reelStop.mp3',
+            winSmall: 'audio/winSmall.wav',
+            winBig: 'audio/slotWin.mp3',
+            coin: 'audio/coinHandling.wav'
+        };
+
+        let soundsToLoad = Object.keys(soundFiles).length;
+        let soundsLoadedCount = 0;
+
+        for (const key in soundFiles) {
+            const audio = new Audio(soundFiles[key]);
+            audio.oncanplaythrough = () => {
+                soundsLoadedCount++;
+                if (soundsLoadedCount === soundsToLoad) {
+                    this.audioLoaded = true;
+                    console.log("All audio files loaded.");
+                    if (this.hasInteracted) { // If user interacted before sounds loaded
+                        this.playBgMusic();
+                    }
+                }
+            };
+            audio.onerror = () => {
+                console.warn(`Failed to load audio: ${soundFiles[key]}`);
+                soundsLoadedCount++; // Count as "loaded" to not block indefinitely
+                 if (soundsLoadedCount === soundsToLoad) {
+                    this.audioLoaded = true; // Still mark as loaded to allow game to proceed
+                    console.warn("Some audio files failed to load, but proceeding.");
+                }
+            };
+            this.sounds[key] = audio;
+        }
+
+        if (this.sounds.bgMusic) {
+            this.sounds.bgMusic.loop = true;
+            this.sounds.bgMusic.volume = this.bgMusicVolume;
+        }
+        if (this.sounds.reelSpin) {
+            this.sounds.reelSpin.loop = true;
+        }
+    }
+
     // Toggle fullscreen mode
     toggleFullscreen() {
+        this.handleFirstInteraction();
+
         this.isFullscreen = !this.isFullscreen;
 
         if (this.isFullscreen) {
@@ -488,8 +545,8 @@ class SlotMachine {
                 vLine.push({ reel: i, row: row });
             }
             for (let i = midReel + 1; i < reels; i++) {
-                const row = Math.max(0, rows - 1 - (i - midReel));
-                vLine.push({ reel: i, row: row });
+                const row = Math.max(0, (rows - 1) - (i - (midReel + 1)) -1 ); // Adjusted for 0-indexed rows
+                vLine.push({ reel: i, row: Math.min(rows - 1, Math.max(0, row)) });
             }
             if (vLine.length >= 3) {
                 lines.push({
@@ -504,12 +561,12 @@ class SlotMachine {
             // Inverted V-shape
             const invVLine = [];
             for (let i = 0; i <= midReel; i++) {
-                const row = Math.max(0, rows - 1 - i);
+                const row = Math.max(0, (rows - 1) - i);
                 invVLine.push({ reel: i, row: row });
             }
             for (let i = midReel + 1; i < reels; i++) {
-                const row = Math.min(i - midReel, rows - 1);
-                invVLine.push({ reel: i, row: row });
+                const row = Math.min(rows - 1, (i - (midReel + 1)) +1); // Adjusted for 0-indexed rows
+                invVLine.push({ reel: i, row: Math.min(rows - 1, Math.max(0, row)) });
             }
             if (invVLine.length >= 3) {
                 lines.push({
@@ -526,7 +583,7 @@ class SlotMachine {
         if (rows >= 3 && reels >= 5) {
             // Standard zigzag
             const zigzag = [];
-            const zigzagPattern = [0, rows - 1, 0, rows - 1, 0];
+            const zigzagPattern = [0, rows - 1, 0, rows - 1, 0]; // Top, Bottom, Top, Bottom, Top
             for (let i = 0; i < Math.min(reels, zigzagPattern.length); i++) {
                 const row = zigzagPattern[i];
                 if (row >= 0 && row < rows) {
@@ -545,7 +602,7 @@ class SlotMachine {
 
             // Reverse zigzag
             const revZigzag = [];
-            const revZigzagPattern = [rows - 1, 0, rows - 1, 0, rows - 1];
+            const revZigzagPattern = [rows - 1, 0, rows - 1, 0, rows - 1]; // Bottom, Top, Bottom, Top, Bottom
             for (let i = 0; i < Math.min(reels, revZigzagPattern.length); i++) {
                 const row = revZigzagPattern[i];
                 if (row >= 0 && row < rows) {
@@ -565,6 +622,8 @@ class SlotMachine {
 
         // Additional complex patterns for more paylines (ideal for 5x3 to reach ~25 lines)
         if (rows >= 3 && reels >= 5) {
+            const midRow = Math.floor(rows / 2); // For patterns using the middle row
+
             // M-shaped pattern (down-up-down-up)
             const mShape = [
                 { reel: 0, row: 0 },
@@ -572,14 +631,16 @@ class SlotMachine {
                 { reel: 2, row: 0 },
                 { reel: 3, row: rows - 1 },
                 { reel: 4, row: 0 }
-            ];
-            lines.push({
-                id: 'm_shape',
-                name: 'M-Shape',
-                positions: mShape,
-                type: 'm-shape',
-                color: this.getPaylineColor(lines.length)
-            });
+            ].filter(p => p.row < rows); // Ensure row is valid
+            if (mShape.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'm_shape',
+                    name: 'M-Shape',
+                    positions: mShape.slice(0, reels),
+                    type: 'm-shape',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
 
             // W-shaped pattern (up-down-up-down)
             const wShape = [
@@ -588,180 +649,280 @@ class SlotMachine {
                 { reel: 2, row: rows - 1 },
                 { reel: 3, row: 0 },
                 { reel: 4, row: rows - 1 }
-            ];
-            lines.push({
-                id: 'w_shape',
-                name: 'W-Shape',
-                positions: wShape,
-                type: 'w-shape',
-                color: this.getPaylineColor(lines.length)
-            });
+            ].filter(p => p.row < rows);
+            if (wShape.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'w_shape',
+                    name: 'W-Shape',
+                    positions: wShape.slice(0, reels),
+                    type: 'w-shape',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
 
             // Arrow patterns
             const arrowUp = [
                 { reel: 0, row: rows - 1 },
-                { reel: 1, row: 1 },
+                { reel: 1, row: midRow },
                 { reel: 2, row: 0 },
-                { reel: 3, row: 1 },
+                { reel: 3, row: midRow },
                 { reel: 4, row: rows - 1 }
-            ];
-            lines.push({
-                id: 'arrow_up',
-                name: 'Arrow ↑',
-                positions: arrowUp,
-                type: 'arrow-up',
-                color: this.getPaylineColor(lines.length)
-            });
+            ].filter(p => p.row < rows);
+             if (arrowUp.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'arrow_up',
+                    name: 'Arrow ↑',
+                    positions: arrowUp.slice(0, reels),
+                    type: 'arrow-up',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
 
             const arrowDown = [
                 { reel: 0, row: 0 },
-                { reel: 1, row: 1 },
+                { reel: 1, row: midRow },
                 { reel: 2, row: rows - 1 },
-                { reel: 3, row: 1 },
+                { reel: 3, row: midRow },
                 { reel: 4, row: 0 }
-            ];
-            lines.push({
-                id: 'arrow_down',
-                name: 'Arrow ↓',
-                positions: arrowDown,
-                type: 'arrow-down',
-                color: this.getPaylineColor(lines.length)
-            });
+            ].filter(p => p.row < rows);
+            if (arrowDown.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'arrow_down',
+                    name: 'Arrow ↓',
+                    positions: arrowDown.slice(0, reels),
+                    type: 'arrow-down',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
         }
 
         // Step patterns for additional variety
         if (rows >= 3 && reels >= 5) {
+            const midRow = Math.floor(rows / 2);
             // Step up pattern
             const stepUp = [
                 { reel: 0, row: rows - 1 },
                 { reel: 1, row: rows - 1 },
-                { reel: 2, row: 1 },
+                { reel: 2, row: midRow },
                 { reel: 3, row: 0 },
                 { reel: 4, row: 0 }
-            ];
-            lines.push({
-                id: 'step_up',
-                name: 'Step Up',
-                positions: stepUp,
-                type: 'step-up',
-                color: this.getPaylineColor(lines.length)
-            });
+            ].filter(p => p.row < rows);
+            if (stepUp.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'step_up',
+                    name: 'Step Up',
+                    positions: stepUp.slice(0, reels),
+                    type: 'step-up',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
 
             // Step down pattern
             const stepDown = [
                 { reel: 0, row: 0 },
                 { reel: 1, row: 0 },
-                { reel: 2, row: 1 },
+                { reel: 2, row: midRow },
                 { reel: 3, row: rows - 1 },
                 { reel: 4, row: rows - 1 }
-            ];
-            lines.push({
-                id: 'step_down',
-                name: 'Step Down',
-                positions: stepDown,
-                type: 'step-down',
-                color: this.getPaylineColor(lines.length)
-            });
+            ].filter(p => p.row < rows);
+            if (stepDown.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'step_down',
+                    name: 'Step Down',
+                    positions: stepDown.slice(0, reels),
+                    type: 'step-down',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
         }
 
         // Crown patterns
         if (rows >= 3 && reels >= 5) {
+            const midRow = Math.floor(rows / 2);
             const crownUp = [
-                { reel: 0, row: 1 },
+                { reel: 0, row: midRow },
                 { reel: 1, row: 0 },
-                { reel: 2, row: 1 },
+                { reel: 2, row: midRow },
                 { reel: 3, row: 0 },
-                { reel: 4, row: 1 }
-            ];
-            lines.push({
-                id: 'crown_up',
-                name: 'Crown ↑',
-                positions: crownUp,
-                type: 'crown-up',
-                color: this.getPaylineColor(lines.length)
-            });
+                { reel: 4, row: midRow }
+            ].filter(p => p.row < rows);
+            if (crownUp.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'crown_up',
+                    name: 'Crown ↑',
+                    positions: crownUp.slice(0, reels),
+                    type: 'crown-up',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
 
             const crownDown = [
-                { reel: 0, row: 1 },
+                { reel: 0, row: midRow },
                 { reel: 1, row: rows - 1 },
-                { reel: 2, row: 1 },
+                { reel: 2, row: midRow },
                 { reel: 3, row: rows - 1 },
-                { reel: 4, row: 1 }
-            ];
-            lines.push({
-                id: 'crown_down',
-                name: 'Crown ↓',
-                positions: crownDown,
-                type: 'crown-down',
-                color: this.getPaylineColor(lines.length)
-            });
+                { reel: 4, row: midRow }
+            ].filter(p => p.row < rows);
+            if (crownDown.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'crown_down',
+                    name: 'Crown ↓',
+                    positions: crownDown.slice(0, reels),
+                    type: 'crown-down',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
         }
 
         // Wave patterns
         if (rows >= 3 && reels >= 5) {
+            const midRow = Math.floor(rows / 2);
             const waveSmooth = [
-                { reel: 0, row: 1 },
+                { reel: 0, row: midRow },
                 { reel: 1, row: 0 },
-                { reel: 2, row: 1 },
+                { reel: 2, row: midRow },
                 { reel: 3, row: rows - 1 },
-                { reel: 4, row: 1 }
-            ];
-            lines.push({
-                id: 'wave_smooth',
-                name: 'Wave ~',
-                positions: waveSmooth,
-                type: 'wave',
-                color: this.getPaylineColor(lines.length)
-            });
+                { reel: 4, row: midRow }
+            ].filter(p => p.row < rows);
+            if (waveSmooth.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'wave_smooth',
+                    name: 'Wave ~',
+                    positions: waveSmooth.slice(0, reels),
+                    type: 'wave',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
 
             const waveReverse = [
-                { reel: 0, row: 1 },
+                { reel: 0, row: midRow },
                 { reel: 1, row: rows - 1 },
-                { reel: 2, row: 1 },
+                { reel: 2, row: midRow },
                 { reel: 3, row: 0 },
-                { reel: 4, row: 1 }
-            ];
-            lines.push({
-                id: 'wave_reverse',
-                name: 'Wave Rev ~',
-                positions: waveReverse,
-                type: 'wave-reverse',
-                color: this.getPaylineColor(lines.length)
-            });
+                { reel: 4, row: midRow }
+            ].filter(p => p.row < rows);
+            if (waveReverse.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'wave_reverse',
+                    name: 'Wave Rev ~',
+                    positions: waveReverse.slice(0, reels),
+                    type: 'wave-reverse',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
         }
 
         // L-shaped patterns
         if (rows >= 3 && reels >= 5) {
+            const midRow = Math.floor(rows / 2);
             const lShapeLeft = [
                 { reel: 0, row: 0 },
                 { reel: 1, row: 0 },
                 { reel: 2, row: 0 },
-                { reel: 3, row: 1 },
+                { reel: 3, row: midRow },
                 { reel: 4, row: rows - 1 }
-            ];
-            lines.push({
-                id: 'l_left',
-                name: 'L-Left',
-                positions: lShapeLeft,
-                type: 'l-left',
-                color: this.getPaylineColor(lines.length)
-            });
+            ].filter(p => p.row < rows);
+            if (lShapeLeft.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'l_left',
+                    name: 'L-Left',
+                    positions: lShapeLeft.slice(0, reels),
+                    type: 'l-left',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
 
             const lShapeRight = [
                 { reel: 0, row: rows - 1 },
-                { reel: 1, row: 1 },
+                { reel: 1, row: midRow }, // Adjusted from fixed '1' to midRow
                 { reel: 2, row: rows - 1 },
                 { reel: 3, row: rows - 1 },
                 { reel: 4, row: rows - 1 }
-            ];
-            lines.push({
-                id: 'l_right',
-                name: 'L-Right',
-                positions: lShapeRight,
-                type: 'l-right',
-                color: this.getPaylineColor(lines.length)
-            });
+            ].filter(p => p.row < rows);
+            if (lShapeRight.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'l_right',
+                    name: 'L-Right',
+                    positions: lShapeRight.slice(0, reels),
+                    type: 'l-right',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
         }
+        
+        // Add 4 new patterns to reach ~25 for 5x3 grid
+        if (rows >= 3 && reels >= 5) {
+            const midRow = Math.floor(rows / 2);
+
+            const bridge = [
+                { reel: 0, row: 0 }, 
+                { reel: 1, row: 0 }, 
+                { reel: 2, row: midRow }, 
+                { reel: 3, row: rows - 1 }, 
+                { reel: 4, row: rows - 1 }
+            ].filter(p => p.row < rows);
+            if (bridge.length >= Math.min(3, reels)) {
+                 lines.push({
+                    id: 'bridge',
+                    name: 'Bridge',
+                    positions: bridge.slice(0, reels),
+                    type: 'bridge',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
+
+            const invBridge = [
+                { reel: 0, row: rows - 1 }, 
+                { reel: 1, row: rows - 1 }, 
+                { reel: 2, row: midRow }, 
+                { reel: 3, row: 0 }, 
+                { reel: 4, row: 0 }
+            ].filter(p => p.row < rows);
+            if (invBridge.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'inv_bridge',
+                    name: 'Inv-Bridge',
+                    positions: invBridge.slice(0, reels),
+                    type: 'inv-bridge',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
+
+            const peak = [
+                { reel: 0, row: midRow }, 
+                { reel: 1, row: 0 }, 
+                { reel: 2, row: 0 }, 
+                { reel: 3, row: 0 }, 
+                { reel: 4, row: midRow }
+            ].filter(p => p.row < rows);
+            if (peak.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'peak',
+                    name: 'Peak',
+                    positions: peak.slice(0, reels),
+                    type: 'peak',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
+
+            const valley = [
+                { reel: 0, row: midRow }, 
+                { reel: 1, row: rows - 1 }, 
+                { reel: 2, row: rows - 1 }, 
+                { reel: 3, row: rows - 1 }, 
+                { reel: 4, row: midRow }
+            ].filter(p => p.row < rows);
+            if (valley.length >= Math.min(3, reels)) {
+                 lines.push({
+                    id: 'valley',
+                    name: 'Valley',
+                    positions: valley.slice(0, reels),
+                    type: 'valley',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
+        }
+
 
         return lines;
     }
@@ -789,6 +950,81 @@ class SlotMachine {
         // This method is now only used for initial generation
         // Win rate logic is handled in generateReelStrips instead
         return this.getBasicRandomSymbol();
+    }
+
+    playSound(soundName, isLooping = false) { // isLooping parameter is indicative, actual loop set on Audio obj
+        if (!this.audioLoaded || !this.sounds[soundName]) {
+            if (!this.sounds[soundName]) console.warn(`Sound not found: ${soundName}`);
+            return null;
+        }
+        // For non-background music, require interaction
+        if (soundName !== 'bgMusic' && !this.hasInteracted) {
+            // console.log(`Sound ${soundName} skipped: User has not interacted yet.`);
+            return null;
+        }
+
+        const audio = this.sounds[soundName];
+        audio.volume = (soundName === 'bgMusic') ? this.bgMusicVolume : this.sfxVolume;
+        audio.currentTime = 0;
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                // console.warn(`Error playing sound ${soundName}:`, error);
+            });
+        }
+        return audio; 
+    }
+
+    stopSound(soundName) {
+        if (this.sounds[soundName]) {
+            this.sounds[soundName].pause();
+            this.sounds[soundName].currentTime = 0;
+        }
+        // Specifically handle the activeReelSpinSound instance
+        if (soundName === 'reelSpin' && this.activeReelSpinSound) {
+            this.activeReelSpinSound.pause();
+            this.activeReelSpinSound.currentTime = 0;
+            this.activeReelSpinSound = null;
+        }
+    }
+
+    playBgMusic() {
+        if (this.audioLoaded && this.sounds.bgMusic && this.hasInteracted) {
+            this.sounds.bgMusic.volume = this.bgMusicVolume;
+            const playPromise = this.sounds.bgMusic.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    // console.warn("BG music autoplay was prevented.", error);
+                });
+            }
+        }
+    }
+
+    setBgMusicVolume(volume) {
+        this.bgMusicVolume = parseFloat(volume);
+        if (this.sounds.bgMusic) {
+            this.sounds.bgMusic.volume = this.bgMusicVolume;
+        }
+        // Update UI if element exists
+        const bgVolumeValueEl = document.getElementById('bgVolumeValue');
+        if (bgVolumeValueEl) bgVolumeValueEl.textContent = Math.round(this.bgMusicVolume * 100);
+    }
+
+    setSfxVolume(volume) {
+        this.sfxVolume = parseFloat(volume);
+        // Update UI if element exists
+        const sfxVolumeValueEl = document.getElementById('sfxVolumeValue');
+        if (sfxVolumeValueEl) sfxVolumeValueEl.textContent = Math.round(this.sfxVolume * 100);
+    }
+
+    handleFirstInteraction() {
+        if (!this.hasInteracted) {
+            this.hasInteracted = true;
+            if (this.audioLoaded) {
+                 this.playBgMusic();
+            }
+        }
     }
 
     drawReel(reelIndex) {
@@ -996,6 +1232,8 @@ class SlotMachine {
     }
     
     spin() {
+        this.handleFirstInteraction(); 
+
         if (this.isSpinning) return;
 
         const totalBet = this.betAmount * this.currentPaylineCount;
@@ -1003,13 +1241,9 @@ class SlotMachine {
             this.showToast("💰 Not enough balance for this bet!", 'error', 3000);
             return;
         }
-
-        // Regenerate reel strips if randomize is enabled
-        if (this.randomizeReelOnSpin) {
-            this.generateReelStrips();
-        }
-
+        this.playSound('spinStart');
         this.balance -= totalBet;
+        this.playSound('coin'); 
         this.updateDisplay();
         this.isSpinning = true;
         this.activePaylines = [];
@@ -1019,17 +1253,16 @@ class SlotMachine {
 
         const currentTime = Date.now();
 
-        // Ensure settling speed array is ready
         if (!this.reelSettlingSpeeds) {
             this.reelSettlingSpeeds = [];
         }
 
         for (let i = 0; i < this.config.reels; i++) {
             this.reelAnimationState[i] = 'spinning';
-            this.reelEasingFactors[i] = 1.0; // Reset easing factor
-            this.reelSpeeds[i] = this.spinSpeed + Math.random() * 5; // Actual speed for spinning phase
+            this.reelEasingFactors[i] = 1.0; 
+            this.reelSpeeds[i] = this.spinSpeed + Math.random() * 5; 
             this.spinStartTimes[i] = currentTime;
-            this.reelSettlingSpeeds[i] = 0.06; // Default settling speed
+            this.reelSettlingSpeeds[i] = 0.06; 
 
             const easeStartDelay = 1500 + (i * 300) + Math.random() * 200;
             
@@ -1037,12 +1270,12 @@ class SlotMachine {
                 this.startReelEasing(i);
             }, easeStartDelay);
         }
+        
+        if (this.activeReelSpinSound) { // Stop previous if any (shouldn't happen if logic is correct)
+            this.stopSound('reelSpin'); 
+        }
+        this.activeReelSpinSound = this.playSound('reelSpin');
 
-        setTimeout(() => {
-            this.checkWin();
-            this.isSpinning = false;
-            document.getElementById('spinButton').disabled = false;
-        }, 3000 + (this.config.reels * 300) + 1000); // Ensure this timeout is long enough
 
         this.animate();
     }
@@ -1087,58 +1320,53 @@ class SlotMachine {
     }
 
     animate() {
-        if (!this.isSpinning) return;
-
-        let allReelsStopped = true;
+        let allReelsActuallyStopped = true;
+        let spinningReelsCount = 0;
 
         for (let i = 0; i < this.config.reels; i++) {
             const state = this.reelAnimationState[i];
             
             if (state === 'spinning') {
-                this.reelOffsets[i] += Math.abs(this.reelSpeeds[i]); // Use the initial full speed
+                spinningReelsCount++;
+                this.reelOffsets[i] += Math.abs(this.reelSpeeds[i]); 
                 
                 while (this.reelOffsets[i] >= this.rowHeight) {
                     this.reelOffsets[i] -= this.rowHeight;
                     const spinDirection = Math.sign(this.reelSpeeds[i]) || Math.sign(this.spinSpeed) || 1;
-                    if (spinDirection > 0) { // Downward
+                    if (spinDirection > 0) { 
                         this.reelPositions[i] = (this.reelPositions[i] + 1) % this.reelStripLength;
-                    } else { // Upward
+                    } else { 
                         this.reelPositions[i] = (this.reelPositions[i] - 1 + this.reelStripLength) % this.reelStripLength;
                     }
                 }
-                allReelsStopped = false;
+                allReelsActuallyStopped = false;
                 
             } else if (state === 'easing') {
                 this.reelEasingFactors[i] *= 0.97; 
                 
-                // Calculate current visual position at this frame of easing
                 const currentSymbolIndexAtTop_easing = this.reelPositions[i];
                 let currentSubPixelOffset_easing = this.reelOffsets[i] % this.rowHeight;
                 if (currentSubPixelOffset_easing < 0) currentSubPixelOffset_easing += this.rowHeight;
 
-                if (this.reelEasingFactors[i] < 0.15) { // Threshold to start settling
+                if (this.reelEasingFactors[i] < 0.15) { 
                     this.reelAnimationState[i] = 'settling';
+                    this.playSound('reelStop');
                     
                     const originalSpinDirection = Math.sign(this.reelSpeeds[i]) || Math.sign(this.spinSpeed) || 1;
-                    // No need to set this.reelSpeeds[i] = 0 here, as it's not used for offset calculation in settling.
-
-                    // Calculate precise visual position at the moment of transition
+                    
                     let visualContinuousPosition_endEase;
-                    if (originalSpinDirection > 0) { // Downward spin
+                    if (originalSpinDirection > 0) { 
                         visualContinuousPosition_endEase = currentSymbolIndexAtTop_easing + (currentSubPixelOffset_easing / this.rowHeight);
-                    } else { // Upward spin
+                    } else { 
                         visualContinuousPosition_endEase = currentSymbolIndexAtTop_easing - (currentSubPixelOffset_easing / this.rowHeight);
                     }
                     visualContinuousPosition_endEase = (visualContinuousPosition_endEase % this.reelStripLength + this.reelStripLength) % this.reelStripLength;
 
-                    // Determine the target symbol index: the one it's visually closest to.
                     let targetSymbolIndex = Math.round(visualContinuousPosition_endEase);
                     targetSymbolIndex = (targetSymbolIndex % this.reelStripLength + this.reelStripLength) % this.reelStripLength;
                     
-                    this.reelTargetPositions[i] = targetSymbolIndex; // For drawing 'stopped' state and consistency
+                    this.reelTargetPositions[i] = targetSymbolIndex; 
 
-                    // Calculate the pixel offset from this targetSymbolIndex's aligned position
-                    // to the current visual position. This offset will then ease towards 0.
                     let initialSettlingOffset = (visualContinuousPosition_endEase - targetSymbolIndex) * this.rowHeight;
                     
                     const halfStripPixels = (this.reelStripLength / 2) * this.rowHeight;
@@ -1149,10 +1377,9 @@ class SlotMachine {
                     }
                     
                     this.reelOffsets[i] = initialSettlingOffset; 
-                    this.reelPositions[i] = targetSymbolIndex; // Base for drawing is now the target index.
+                    this.reelPositions[i] = targetSymbolIndex; 
                                         
                 } else {
-                    // Continue spinning but slower, using the original reelSpeed scaled by easing factor
                     const easedSpeed = Math.abs(this.reelSpeeds[i]) * this.reelEasingFactors[i];
                     this.reelOffsets[i] += easedSpeed; 
                     
@@ -1165,16 +1392,16 @@ class SlotMachine {
                             this.reelPositions[i] = (this.reelPositions[i] - 1 + this.reelStripLength) % this.reelStripLength;
                         }
                     }
-                     while (this.reelOffsets[i] < 0) { // Handle upward spin offset
+                     while (this.reelOffsets[i] < 0) { 
                         this.reelOffsets[i] += this.rowHeight;
-                        if (spinDirection < 0) { // Upward
+                        if (spinDirection < 0) { 
                              this.reelPositions[i] = (this.reelPositions[i] - 1 + this.reelStripLength) % this.reelStripLength;
-                        } else { // Should not happen if spinDirection is consistent
+                        } else { 
                              this.reelPositions[i] = (this.reelPositions[i] + 1) % this.reelStripLength;
                         }
                     }
                 }
-                allReelsStopped = false;
+                allReelsActuallyStopped = false;
                 
             } else if (state === 'settling') {
                 const settleSpeedFactor = this.reelSettlingSpeeds[i] || 0.06;
@@ -1183,42 +1410,38 @@ class SlotMachine {
                 if (Math.abs(this.reelOffsets[i]) < snapThreshold) {
                     this.reelOffsets[i] = 0;
                     this.reelAnimationState[i] = 'stopped';
-                    this.reelPositions[i] = Math.floor(this.reelTargetPositions[i]); // Ensure it's exactly the target
-                    this.updateGridFromReels(); 
+                    this.reelPositions[i] = Math.floor(this.reelTargetPositions[i]); 
                 } else {
                     this.reelOffsets[i] *= (1 - settleSpeedFactor); 
                 }
-                if (this.reelAnimationState[i] === 'settling') {
-                    allReelsStopped = false;
+                if (this.reelAnimationState[i] !== 'stopped') {
+                    allReelsActuallyStopped = false;
                 }
                 
             } else if (state === 'stopped') {
-                this.reelSpeeds[i] = 0; // Ensure speed is zero
-                this.reelOffsets[i] = 0; // Ensure offset is zero
-                this.reelPositions[i] = Math.floor(this.reelTargetPositions[i]); // Ensure position is on target
+                // Reel is stopped
             }
         }
-
-        const anyReelNotStopped = this.reelAnimationState.some(s => s !== 'stopped');
-        if (anyReelNotStopped) {
-             allReelsStopped = false;
-        }
-
-
-        // Update grid if any reel is settling or has just stopped, to reflect changes
-        const anyReelStoppingOrSettling = this.reelAnimationState.some(state => state === 'settling' || state === 'stopped');
-        if (anyReelStoppingOrSettling && !allReelsStopped) { // Update grid during settling but before all stopped
-            this.updateGridFromReels();
+        
+        if (spinningReelsCount === 0 && this.activeReelSpinSound) {
+             this.stopSound('reelSpin');
         }
         
         this.draw();
 
-        if (!allReelsStopped) {
+        if (!allReelsActuallyStopped) {
             requestAnimationFrame(() => this.animate());
         } else {
-            this.updateGridFromReels(); // Final grid update
-            this.draw(); // Final draw
-            // checkWin is called by setTimeout in spin()
+            if (this.activeReelSpinSound) { 
+                this.stopSound('reelSpin');
+            }
+            this.updateGridFromReels(); 
+            this.checkWin();
+            this.isSpinning = false;
+            const spinButton = document.getElementById('spinButton');
+            if (spinButton) {
+                spinButton.disabled = false;
+            }
         }
     }
 
@@ -1584,47 +1807,38 @@ class SlotMachine {
         let totalWildsUsed = 0;
         this.activePaylines = [];
 
-        // ONLY check for wins if we have active paylines
         if (this.currentPaylineCount === 0) {
-            // No paylines = no wins possible
             this.showToast("ℹ️ No paylines active - no wins possible", 'info', 2000);
             return;
         }
 
-        // Check for scatter symbols first (free spins)
         const scatterCount = this.countScatterSymbols();
         let freeSpinsAwarded = 0;
 
         if (scatterCount >= this.scatterThreshold) {
-            // Award free spins based on scatter count
             freeSpinsAwarded = this.baseFreeSpins;
-
-            // Multiply free spins for more scatters
             if (scatterCount > this.scatterThreshold) {
                 const extraScatters = scatterCount - this.scatterThreshold;
                 freeSpinsAwarded += extraScatters * this.baseFreeSpins;
             }
-
             this.freeSpinsCount += freeSpinsAwarded;
+            // Play a sound for scatter win / free spins awarded
+            this.playSound('winBig'); // Or a dedicated scatter win sound
 
             let scatterMessage = `🌟 <strong>SCATTER BONUS!</strong><br/>`;
             scatterMessage += `${scatterCount} Scatters = ${freeSpinsAwarded} Free Spins!<br/>`;
             scatterMessage += `Total Free Spins: ${this.freeSpinsCount}`;
-
             this.showToast(scatterMessage, 'warning', 6000);
         }
 
-        // Check each active payline for regular wins
         for (let i = 0; i < this.currentPaylineCount && i < this.paylines.length; i++) {
             const payline = this.paylines[i];
             let lineResult = this.checkPayline(payline);
 
             if (lineResult.payout > 0) {
-                // Apply free spin multiplier if in free spins mode
                 if (this.isInFreeSpins) {
                     lineResult.payout *= this.freeSpinMultiplier;
                 }
-
                 totalWin += lineResult.payout;
                 totalWildsUsed += lineResult.wildsUsed;
                 this.activePaylines.push(payline);
@@ -1633,26 +1847,30 @@ class SlotMachine {
 
         if (totalWin > 0) {
             this.balance += totalWin;
+            this.playSound('coin'); 
 
-            // Enhanced win message with free spins information
-            let message = `🎉 <strong>BIG WIN!</strong><br/>+${totalWin} coins on ${this.activePaylines.length} line(s)!`;
+            const winThreshold = this.betAmount * this.currentPaylineCount * 10; 
+            if (totalWin >= winThreshold && !freeSpinsAwarded) { // Avoid double big win sound if scatter also triggered
+                this.playSound('winBig');
+            } else if (!freeSpinsAwarded) {
+                this.playSound('winSmall');
+            }
+
+            let message = `🎉 <strong>BIG WIN!</strong><br/>+${this.formatCurrency(totalWin)} on ${this.activePaylines.length} line(s)!`;
             if (totalWildsUsed > 0) {
                 message += `<br/>🃏 ${totalWildsUsed} Wild${totalWildsUsed > 1 ? 's' : ''} helped!`;
             }
             if (this.isInFreeSpins) {
                 message += `<br/>🆓 Free Spin Bonus! (${this.freeSpinsCount} left)`;
             }
-            if (totalWin >= 100) {
+            if (totalWin >= 100) { // Assuming 100 is a significant amount
                 message += '<br/>💎 JACKPOT TERRITORY! 💎';
             }
 
             this.showToast(message, 'win', 5000);
             this.updateDisplay();
-
-            // Animate winning paylines
             this.animateWin();
         } else if (freeSpinsAwarded === 0) {
-            // Only show lose messages if no free spins were awarded
             if (this.isInFreeSpins) {
                 this.showToast(`🆓 Free Spin - Keep going! (${this.freeSpinsCount} left)`, 'info', 3000);
             } else if (this.winRate < 20) {
@@ -1915,23 +2133,29 @@ class SlotMachine {
     }
 
     changeBet(delta) {
+        this.handleFirstInteraction();
         if (this.isSpinning) return;
 
+        const oldBetAmount = this.betAmount;
         const newBet = this.betAmount + (delta * this.betIncrement);
         if (newBet >= this.minBet && newBet <= this.maxBet) {
-            this.betAmount = Math.round(newBet * 100) / 100; // Ensure proper decimal precision
+            this.betAmount = Math.round(newBet * 100) / 100; 
+            if (this.betAmount !== oldBetAmount) { 
+                this.playSound('coin');
+            }
             this.updateDisplay();
         }
     }
     
     changePaylines(delta) {
+        this.handleFirstInteraction();
         if (this.isSpinning) return;
 
         const newCount = this.currentPaylineCount + delta;
         if (newCount >= 1 && newCount <= this.maxPaylines) {
             this.currentPaylineCount = newCount;
             this.updateDisplay();
-            this.draw(); // Redraw with new paylines
+            this.draw(); 
         }
     } 
 
@@ -2207,14 +2431,15 @@ class SlotMachine {
     }
 
     resetCoins() {
+        this.handleFirstInteraction();
         if (this.isSpinning) return;
 
-        this.balance = 100.00;  // Changed from coinCount
-        this.betAmount = 1.00;  // Reset to $1.00
-        this.currentPaylineCount = 1;
+        this.balance = 100.00;
+        this.betAmount = 1.00;
+        this.currentPaylineCount = this.maxPaylines; 
         this.winRate = 50;
+        this.playSound('coin');
         this.updateDisplay();
-        // Update slider position
         const winRateSlider = document.getElementById('winRateSlider');
         if (winRateSlider) winRateSlider.value = 50;
         this.showToast("🎰 Game reset! $100.00 starting balance", 'info', 2000);
@@ -2451,6 +2676,8 @@ class SlotMachine {
 
     changeGameTheme(themeKey) {
         if (this.isSpinning) return;
+
+        this.handleFirstInteraction();
         
         if (this.gameThemes[themeKey]) {
             this.currentTheme = themeKey;
@@ -2502,26 +2729,25 @@ class SlotMachine {
 
     // Method to easily change grid size (for customization)
     reconfigure(reels, rows) {
+        this.handleFirstInteraction();
         if (this.isSpinning) return;
 
         this.config.reels = reels;
         this.config.rows = rows;
 
-        // Recalculate dimensions
         this.reelWidth = (this.canvas.width - (this.config.reels - 1) * this.config.spacing) / this.config.reels;
         this.rowHeight = (this.canvas.height - (this.config.rows - 1) * this.config.spacing) / this.config.rows;
 
-        // Regenerate paylines
         this.paylines = this.generatePaylines();
         this.maxPaylines = this.paylines.length;
-        this.currentPaylineCount = 1;
+        this.currentPaylineCount = this.maxPaylines;
 
-        // Reinitialize
         this.initializeReels();
         this.updateDisplay();
         this.draw();
 
         this.showMessage(`📐 Grid: ${reels}x${rows} (${this.maxPaylines} lines)`, 2000);
+        this.playSound('coin'); 
     }
 }
 
@@ -2606,10 +2832,47 @@ function changeSpinSpeed(value) {
 
 function toggleRandomizeReels() {
     slotMachine.toggleRandomizeReels();
-}``
+}
+
+function setBgMusicVolume(value) {
+    if (slotMachine) {
+        slotMachine.handleFirstInteraction(); 
+        slotMachine.setBgMusicVolume(value);
+    }
+}
+
+function updateBgVolumeValue(value) {
+    const bgVolEl = document.getElementById('bgVolumeValue');
+    if (bgVolEl) bgVolEl.textContent = Math.round(parseFloat(value) * 100);
+}
+
+function setSfxVolume(value) {
+    if (slotMachine) {
+        slotMachine.handleFirstInteraction();
+        slotMachine.setSfxVolume(value);
+    }
+}
+
+function updateSfxVolumeValue(value) {
+    const sfxVolEl = document.getElementById('sfxVolumeValue');
+    if(sfxVolEl) sfxVolEl.textContent = Math.round(parseFloat(value) * 100);
+}
 
 window.addEventListener('load', () => {
     slotMachine = new SlotMachine();
+
+    // Initialize volume slider display values and slider positions
+    const bgVolumeSlider = document.getElementById('bgVolumeSlider');
+    const sfxVolumeSlider = document.getElementById('sfxVolumeSlider');
+
+    if (bgVolumeSlider) {
+        bgVolumeSlider.value = slotMachine.bgMusicVolume;
+        updateBgVolumeValue(slotMachine.bgMusicVolume);
+    }
+    if (sfxVolumeSlider) {
+        sfxVolumeSlider.value = slotMachine.sfxVolume;
+        updateSfxVolumeValue(slotMachine.sfxVolume);
+    }
     
     // Add mobile-specific styles
     if (slotMachine.isMobile) {
