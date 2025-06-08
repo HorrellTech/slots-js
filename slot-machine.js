@@ -345,7 +345,7 @@ class SlotMachine {
                 this.reelPositions[reel] = Math.floor(this.reelPositions[reel]);
                 
                 // Calculate strip position with proper bounds checking
-                const stripPosition = (this.reelPositions[reel] + row) % this.reelStripLength;
+                const stripPosition = (this.reelPositions[reel] + row + this.reelStripLength) % this.reelStripLength; // Ensure positive
                 
                 // Ensure stripPosition is a valid integer
                 const safeStripPosition = Math.max(0, Math.floor(stripPosition));
@@ -358,12 +358,19 @@ class SlotMachine {
                 
                 // Safety check to ensure symbol exists
                 if (!symbol || !symbol.id) {
-                    console.warn(`Missing symbol at reel ${reel}, position ${safeStripPosition}, generating new symbol`);
-                    symbol = this.getBasicRandomSymbol();
+                    console.warn(`Missing symbol at reel ${reel}, position ${safeStripPosition}, generating new symbol for grid display`);
+                    symbol = this.getBasicRandomSymbol(); // Get a symbol for display
                     
-                    // Store the new symbol in the strip to maintain consistency
-                    if (this.reelStrips[reel]) {
-                        this.reelStrips[reel][safeStripPosition] = symbol;
+                    // Store the new symbol in the strip to maintain consistency ONLY IF reels are randomized
+                    if (this.randomizeReelOnSpin) {
+                        if (this.reelStrips[reel]) {
+                            this.reelStrips[reel][safeStripPosition] = symbol;
+                            console.warn(`Physical reel strip modified due to missing symbol at reel ${reel}, pos ${safeStripPosition}. This should ideally not happen if randomizeReelOnSpin is false.`);
+                        }
+                    } else {
+                        // For physical reels, do not modify the strip. Log it.
+                        console.error(`CRITICAL: Physical reel strip missing symbol at reel ${reel}, pos ${safeStripPosition}. Strip integrity compromised.`);
+                        // Use the random symbol for the grid display only to prevent crashes, but the strip itself remains "broken".
                     }
                 }
                 
