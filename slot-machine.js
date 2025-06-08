@@ -40,7 +40,7 @@ class SlotMachine {
         this.spinSpeed = 16; // Base spin speed (adjustable)
         this.randomizeReelOnSpin = false; // Set to true for random reels each spin, false for physical slot behavior
         this.reelStripLength = 32; // Length of each reel strip
-        
+
         // Enhanced reel animation variables
         this.reelAnimationState = []; // Track animation state for each reel
         this.reelTargetPositions = []; // Target positions for smooth stopping
@@ -72,7 +72,7 @@ class SlotMachine {
         // Calculate dimensions based on config
         this.reelWidth = (this.canvas.width - (this.config.reels - 1) * this.config.spacing) / this.config.reels;
         this.rowHeight = (this.canvas.height - (this.config.rows - 1) * this.config.spacing) / this.config.rows;        // Free spins configuration
-        
+
         // Free spins configuration
         this.freeSpinsCount = 0; // Remaining free spins
         this.totalFreeSpinsAwarded = 0; // Total spins awarded in current feature round (for display)
@@ -167,6 +167,202 @@ class SlotMachine {
                     { id: 'wild', name: '✨', value: 0, probability: this.wildRarity, color: '#ffffff', isWild: true },
                     { id: 'scatter', name: '💍', value: 0, probability: this.scatterRarity, color: '#ff69b4', isScatter: true }
                 ]
+            },
+            'cards': {
+                name: 'Card Royale',
+                symbols: [
+                    { id: 'clubs', name: '♣️', value: 5, probability: 0.3, color: '#2c3e50' },
+                    { id: 'diamonds', name: '♦️', value: 10, probability: 0.25, color: '#e74c3c' },
+                    { id: 'hearts', name: '♥️', value: 15, probability: 0.2, color: '#e74c3c' },
+                    { id: 'spades', name: '♠️', value: 25, probability: 0.15, color: '#2c3e50' },
+                    { id: 'jack', name: '🎭', value: 50, probability: 0.07, color: '#9b59b6' },
+                    { id: 'queen', name: '👸', value: 100, probability: 0.02, color: '#8e44ad' },
+                    { id: 'king', name: '👑', value: 200, probability: 0.01, color: '#f1c40f' },
+                    { id: 'wild', name: '🃏', value: 0, probability: this.wildRarity, color: '#3498db', isWild: true },
+                    { id: 'scatter', name: '🎴', value: 0, probability: this.scatterRarity, color: '#e67e22', isScatter: true }
+                ]
+            },
+            'chess': {
+                name: 'Chess Masters',
+                symbols: [
+                    { id: 'pawn', name: '♟️', value: 5, probability: 0.3, color: '#7f8c8d' },
+                    { id: 'knight', name: '♞', value: 10, probability: 0.25, color: '#95a5a6' },
+                    { id: 'bishop', name: '♝', value: 15, probability: 0.2, color: '#bdc3c7' },
+                    { id: 'rook', name: '♜', value: 25, probability: 0.15, color: '#34495e' },
+                    { id: 'queen', name: '♛', value: 50, probability: 0.07, color: '#9b59b6' },
+                    { id: 'king', name: '♚', value: 100, probability: 0.02, color: '#f1c40f' },
+                    { id: 'checkmate', name: '⚔️', value: 200, probability: 0.01, color: '#c0392b' },
+                    { id: 'wild', name: '🏆', value: 0, probability: this.wildRarity, color: '#d4af37', isWild: true },
+                    { id: 'scatter', name: '♟︎', value: 0, probability: this.scatterRarity, color: '#2980b9', isScatter: true }
+                ]
+            },
+            'monsters': {
+                name: 'Monster Mayhem',
+                symbols: [
+                    { id: 'ghost', name: '👻', value: 5, probability: 0.3, color: '#ecf0f1' },
+                    { id: 'alien', name: '👾', value: 10, probability: 0.25, color: '#9b59b6' },
+                    { id: 'goblin', name: '👺', value: 15, probability: 0.2, color: '#e74c3c' },
+                    { id: 'ogre', name: '👹', value: 25, probability: 0.15, color: '#c0392b' },
+                    { id: 'zombie', name: '🧟', value: 50, probability: 0.07, color: '#27ae60' },
+                    { id: 'vampire', name: '🧛', value: 100, probability: 0.02, color: '#8e44ad' },
+                    { id: 'dragon', name: '🐲', value: 200, probability: 0.01, color: '#d35400' },
+                    { id: 'wild', name: '🔮', value: 0, probability: this.wildRarity, color: '#9b59b6', isWild: true },
+                    { id: 'scatter', name: '⚡', value: 0, probability: this.scatterRarity, color: '#f39c12', isScatter: true }
+                ]
+            },
+            'wolves': {
+                name: 'Wolf Pack',
+                symbols: [
+                    { id: 'paw', name: '🐾', value: 5, probability: 0.3, color: '#95a5a6' },
+                    { id: 'moon', name: '🌙', value: 10, probability: 0.25, color: '#f1c40f' },
+                    { id: 'forest', name: '🌲', value: 15, probability: 0.2, color: '#27ae60' },
+                    { id: 'howl', name: '🐺', value: 25, probability: 0.15, color: '#7f8c8d' },
+                    { id: 'alpha', name: '🐺‍⬛', value: 50, probability: 0.07, color: '#34495e' },
+                    { id: 'hunter', name: '🏹', value: 100, probability: 0.02, color: '#c0392b' },
+                    { id: 'fullmoon', name: '🌕', value: 200, probability: 0.01, color: '#f39c12' },
+                    { id: 'wild', name: '🔥', value: 0, probability: this.wildRarity, color: '#e74c3c', isWild: true },
+                    { id: 'scatter', name: '🌟', value: 0, probability: this.scatterRarity, color: '#f1c40f', isScatter: true }
+                ]
+            },
+            'egypt': {
+                name: 'Ancient Egypt',
+                symbols: [
+                    { id: 'ankh', name: '☥', value: 5, probability: 0.3, color: '#f39c12' },
+                    { id: 'eye', name: '👁️', value: 10, probability: 0.25, color: '#3498db' },
+                    { id: 'cat', name: '😺', value: 15, probability: 0.2, color: '#f1c40f' },
+                    { id: 'scarab', name: '🪲', value: 25, probability: 0.15, color: '#27ae60' },
+                    { id: 'mummy', name: '🧟', value: 50, probability: 0.07, color: '#ecf0f1' },
+                    { id: 'sphinx', name: '🦁', value: 100, probability: 0.02, color: '#d35400' },
+                    { id: 'pyramid', name: '🏯', value: 200, probability: 0.01, color: '#f39c12' },
+                    { id: 'wild', name: '🧞', value: 0, probability: this.wildRarity, color: '#3498db', isWild: true },
+                    { id: 'scatter', name: '📜', value: 0, probability: this.scatterRarity, color: '#7f8c8d', isScatter: true }
+                ]
+            },
+            'music': {
+                name: 'Music Beats',
+                symbols: [
+                    { id: 'note', name: '🎵', value: 5, probability: 0.3, color: '#3498db' },
+                    { id: 'clef', name: '🎼', value: 10, probability: 0.25, color: '#9b59b6' },
+                    { id: 'guitar', name: '🎸', value: 15, probability: 0.2, color: '#e74c3c' },
+                    { id: 'piano', name: '🎹', value: 25, probability: 0.15, color: '#2c3e50' },
+                    { id: 'microphone', name: '🎤', value: 50, probability: 0.07, color: '#d35400' },
+                    { id: 'headphones', name: '🎧', value: 100, probability: 0.02, color: '#2980b9' },
+                    { id: 'disc', name: '💿', value: 200, probability: 0.01, color: '#7f8c8d' },
+                    { id: 'wild', name: '🔊', value: 0, probability: this.wildRarity, color: '#16a085', isWild: true },
+                    { id: 'scatter', name: '🎵', value: 0, probability: this.scatterRarity, color: '#f39c12', isScatter: true }
+                ]
+            },
+            'fantasy': {
+                name: 'Fantasy Realm',
+                symbols: [
+                    { id: 'sword', name: '⚔️', value: 5, probability: 0.3, color: '#95a5a6' },
+                    { id: 'shield', name: '🛡️', value: 10, probability: 0.25, color: '#7f8c8d' },
+                    { id: 'bow', name: '🏹', value: 15, probability: 0.2, color: '#8e44ad' },
+                    { id: 'potion', name: '⚗️', value: 25, probability: 0.15, color: '#16a085' },
+                    { id: 'wizard', name: '🧙', value: 50, probability: 0.07, color: '#3498db' },
+                    { id: 'princess', name: '👸', value: 100, probability: 0.02, color: '#f39c12' },
+                    { id: 'unicorn', name: '🦄', value: 200, probability: 0.01, color: '#9b59b6' },
+                    { id: 'wild', name: '✨', value: 0, probability: this.wildRarity, color: '#f1c40f', isWild: true },
+                    { id: 'scatter', name: '🏰', value: 0, probability: this.scatterRarity, color: '#34495e', isScatter: true }
+                ]
+            },
+            'astrology': {
+                name: 'Astrology Signs',
+                symbols: [
+                    { id: 'aries', name: '♈', value: 5, probability: 0.3, color: '#ff5722' },
+                    { id: 'taurus', name: '♉', value: 10, probability: 0.25, color: '#8bc34a' },
+                    { id: 'gemini', name: '♊', value: 15, probability: 0.2, color: '#ffeb3b' },
+                    { id: 'cancer', name: '♋', value: 25, probability: 0.15, color: '#03a9f4' },
+                    { id: 'leo', name: '♌', value: 50, probability: 0.07, color: '#ff9800' },
+                    { id: 'virgo', name: '♍', value: 100, probability: 0.02, color: '#9c27b0' },
+                    { id: 'libra', name: '♎', value: 200, probability: 0.01, color: '#2196f3' },
+                    { id: 'wild', name: '✨', value: 0, probability: this.wildRarity, color: '#e91e63', isWild: true },
+                    { id: 'scatter', name: '🔮', value: 0, probability: this.scatterRarity, color: '#9c27b0', isScatter: true }
+                ]
+            },
+            'weather': {
+                name: 'Weather Forecast',
+                symbols: [
+                    { id: 'sunny', name: '☀️', value: 5, probability: 0.3, color: '#ffeb3b' },
+                    { id: 'cloudy', name: '☁️', value: 10, probability: 0.25, color: '#b0bec5' },
+                    { id: 'rain', name: '🌧️', value: 15, probability: 0.2, color: '#2196f3' },
+                    { id: 'storm', name: '⚡', value: 25, probability: 0.15, color: '#ffc107' },
+                    { id: 'snow', name: '❄️', value: 50, probability: 0.07, color: '#e1f5fe' },
+                    { id: 'rainbow', name: '🌈', value: 100, probability: 0.02, color: '#9c27b0' },
+                    { id: 'tornado', name: '🌪️', value: 200, probability: 0.01, color: '#607d8b' },
+                    { id: 'wild', name: '🌞', value: 0, probability: this.wildRarity, color: '#ff9800', isWild: true },
+                    { id: 'scatter', name: '🌍', value: 0, probability: this.scatterRarity, color: '#4caf50', isScatter: true }
+                ]
+            },
+            'planets': {
+                name: 'Solar System',
+                symbols: [
+                    { id: 'mercury', name: '☿', value: 5, probability: 0.3, color: '#9e9e9e' },
+                    { id: 'venus', name: '♀', value: 10, probability: 0.25, color: '#ffeb3b' },
+                    { id: 'earth', name: '🌍', value: 15, probability: 0.2, color: '#2196f3' },
+                    { id: 'mars', name: '♂', value: 25, probability: 0.15, color: '#f44336' },
+                    { id: 'jupiter', name: '♃', value: 50, probability: 0.07, color: '#ff9800' },
+                    { id: 'saturn', name: '♄', value: 100, probability: 0.02, color: '#ffd54f' },
+                    { id: 'uranus', name: '♅', value: 200, probability: 0.01, color: '#80deea' },
+                    { id: 'wild', name: '☀️', value: 0, probability: this.wildRarity, color: '#ffeb3b', isWild: true },
+                    { id: 'scatter', name: '⭐', value: 0, probability: this.scatterRarity, color: '#e1f5fe', isScatter: true }
+                ]
+            },
+            'emoticons': {
+                name: 'Emoji Faces',
+                symbols: [
+                    { id: 'smile', name: '😊', value: 5, probability: 0.3, color: '#ffeb3b' },
+                    { id: 'laugh', name: '😂', value: 10, probability: 0.25, color: '#2196f3' },
+                    { id: 'wink', name: '😉', value: 15, probability: 0.2, color: '#ff9800' },
+                    { id: 'love', name: '😍', value: 25, probability: 0.15, color: '#f44336' },
+                    { id: 'cool', name: '😎', value: 50, probability: 0.07, color: '#009688' },
+                    { id: 'surprised', name: '😮', value: 100, probability: 0.02, color: '#9c27b0' },
+                    { id: 'crazy', name: '🤪', value: 200, probability: 0.01, color: '#673ab7' },
+                    { id: 'wild', name: '🥳', value: 0, probability: this.wildRarity, color: '#e91e63', isWild: true },
+                    { id: 'scatter', name: '🎭', value: 0, probability: this.scatterRarity, color: '#3f51b5', isScatter: true }
+                ]
+            },
+            'sports': {
+                name: 'Sports Arena',
+                symbols: [
+                    { id: 'soccer', name: '⚽', value: 5, probability: 0.3, color: '#212121' },
+                    { id: 'basketball', name: '🏀', value: 10, probability: 0.25, color: '#ff5722' },
+                    { id: 'football', name: '🏈', value: 15, probability: 0.2, color: '#795548' },
+                    { id: 'tennis', name: '🎾', value: 25, probability: 0.15, color: '#cddc39' },
+                    { id: 'baseball', name: '⚾', value: 50, probability: 0.07, color: '#607d8b' },
+                    { id: 'bowling', name: '🎳', value: 100, probability: 0.02, color: '#f44336' },
+                    { id: 'trophy', name: '🏆', value: 200, probability: 0.01, color: '#ffd700' },
+                    { id: 'wild', name: '🏅', value: 0, probability: this.wildRarity, color: '#ffc107', isWild: true },
+                    { id: 'scatter', name: '🎯', value: 0, probability: this.scatterRarity, color: '#4caf50', isScatter: true }
+                ]
+            },
+            'tech': {
+                name: 'Tech Gadgets',
+                symbols: [
+                    { id: 'phone', name: '📱', value: 5, probability: 0.3, color: '#9e9e9e' },
+                    { id: 'laptop', name: '💻', value: 10, probability: 0.25, color: '#3f51b5' },
+                    { id: 'camera', name: '📷', value: 15, probability: 0.2, color: '#212121' },
+                    { id: 'game', name: '🎮', value: 25, probability: 0.15, color: '#009688' },
+                    { id: 'tv', name: '📺', value: 50, probability: 0.07, color: '#607d8b' },
+                    { id: 'watch', name: '⌚', value: 100, probability: 0.02, color: '#795548' },
+                    { id: 'robot', name: '🤖', value: 200, probability: 0.01, color: '#9c27b0' },
+                    { id: 'wild', name: '⚡', value: 0, probability: this.wildRarity, color: '#ff9800', isWild: true },
+                    { id: 'scatter', name: '🔌', value: 0, probability: this.scatterRarity, color: '#4caf50', isScatter: true }
+                ]
+            },
+            'camping': {
+                name: 'Wilderness Camp',
+                symbols: [
+                    { id: 'tent', name: '⛺', value: 5, probability: 0.3, color: '#ff9800' },
+                    { id: 'tree', name: '🌲', value: 10, probability: 0.25, color: '#4caf50' },
+                    { id: 'mountain', name: '⛰️', value: 15, probability: 0.2, color: '#795548' },
+                    { id: 'fire', name: '🔥', value: 25, probability: 0.15, color: '#f44336' },
+                    { id: 'fish', name: '🐟', value: 50, probability: 0.07, color: '#03a9f4' },
+                    { id: 'compass', name: '🧭', value: 100, probability: 0.02, color: '#795548' },
+                    { id: 'backpack', name: '🎒', value: 200, probability: 0.01, color: '#f44336' },
+                    { id: 'wild', name: '🏕️', value: 0, probability: this.wildRarity, color: '#8d6e63', isWild: true },
+                    { id: 'scatter', name: '🌟', value: 0, probability: this.scatterRarity, color: '#ffeb3b', isScatter: true }
+                ]
             }
         };
 
@@ -212,7 +408,7 @@ class SlotMachine {
         this.loadImages(); // Load symbol images if using image mode
         this.updateDisplay();
         this.draw();
-        
+
         // Initialize mobile support
         this.initializeMobileSupport();
     }
@@ -223,7 +419,7 @@ class SlotMachine {
         this.reelSpeeds = [];
         this.reelOffsets = [];
         this.spinStartTimes = [];
-        
+
         for (let i = 0; i < this.config.reels; i++) {
             this.reelPositions[i] = Math.floor(Math.random() * this.reelStripLength);
             this.reelSpeeds[i] = 0;
@@ -235,13 +431,13 @@ class SlotMachine {
         this.reelAnimationState = [];
         this.reelTargetPositions = [];
         this.reelEasingFactors = [];
-        
+
         for (let i = 0; i < this.config.reels; i++) {
             this.reelPositions[i] = Math.floor(Math.random() * this.reelStripLength);
             this.reelSpeeds[i] = 0;
             this.reelOffsets[i] = 0;
             this.spinStartTimes[i] = 0;
-            
+
             // Enhanced animation states
             this.reelAnimationState[i] = 'stopped'; // 'spinning', 'easing', 'settling', 'stopped'
             this.reelTargetPositions[i] = this.reelPositions[i];
@@ -250,7 +446,7 @@ class SlotMachine {
 
         // Generate pre-determined reel strips (like physical slot machines)
         this.generateReelStrips();
-        
+
         // Initialize grid from current reel positions
         this.updateGridFromReels();
     }
@@ -258,15 +454,15 @@ class SlotMachine {
     generateReelStrips() {
         // Normalize probabilities first
         this.normalizeSymbolProbabilities();
-        
+
         this.reelStrips = [];
-        
+
         // Make reel strips longer for more realistic spinning
         const extendedStripLength = Math.max(this.reelStripLength, 32); // At least 32 symbols per strip
-        
+
         for (let reelIndex = 0; reelIndex < this.config.reels; reelIndex++) {
             const strip = [];
-            
+
             if (this.randomizeReelOnSpin) {
                 // Generate basic random strip (will be regenerated each spin)
                 for (let i = 0; i < extendedStripLength; i++) {
@@ -284,10 +480,10 @@ class SlotMachine {
                     }
                 }
             }
-            
+
             this.reelStrips[reelIndex] = strip;
         }
-        
+
         // Update the actual strip length to the extended length
         this.reelStripLength = extendedStripLength;
     }
@@ -296,12 +492,12 @@ class SlotMachine {
         // Update wild and scatter probabilities from their rarity settings
         const wildSymbol = this.symbols.find(s => s.isWild);
         const scatterSymbol = this.symbols.find(s => s.isScatter);
-        
+
         if (wildSymbol) wildSymbol.probability = this.wildRarity;
         if (scatterSymbol) scatterSymbol.probability = this.scatterRarity;
 
         let totalProbability = this.symbols.reduce((sum, symbol) => sum + (symbol.probability || 0), 0); // Ensure probability is a number
-        
+
         if (totalProbability <= 0) {
             console.warn("Total symbol probability is zero or negative. Attempting to re-distribute probabilities.");
             let targetSymbolsForEqualProb = this.symbols.filter(s => s && !s.isWild && !s.isScatter && s.value > 0);
@@ -321,25 +517,25 @@ class SlotMachine {
                     if (s && targetSymbolsForEqualProb.includes(s)) {
                         s.probability = equalProb;
                     } else if (s) {
-                        s.probability = 0; 
+                        s.probability = 0;
                     }
                 });
                 totalProbability = targetSymbolsForEqualProb.length > 0 ? 1.0 : 0; // Should be 1.0 if targetSymbolsForEqualProb found
             } else if (this.symbols.length > 0) {
-                 console.error("Could not assign probabilities. All symbols might be invalid or list empty after filtering.");
-                 // Last resort: if this.symbols has entries but all were filtered out (e.g. all null)
-                 // This path indicates a deeper issue with this.symbols content.
-                 // For now, to prevent NaN, if this.symbols has length, distribute.
-                 const validSymbols = this.symbols.filter(s => s);
-                 if (validSymbols.length > 0) {
+                console.error("Could not assign probabilities. All symbols might be invalid or list empty after filtering.");
+                // Last resort: if this.symbols has entries but all were filtered out (e.g. all null)
+                // This path indicates a deeper issue with this.symbols content.
+                // For now, to prevent NaN, if this.symbols has length, distribute.
+                const validSymbols = this.symbols.filter(s => s);
+                if (validSymbols.length > 0) {
                     validSymbols.forEach(s => s.probability = 1.0 / validSymbols.length);
                     totalProbability = 1.0;
-                 } else {
+                } else {
                     totalProbability = 0; // No valid symbols
-                 }
+                }
             } else {
                 console.error("No symbols to normalize probabilities for.");
-                return; 
+                return;
             }
         }
 
@@ -361,70 +557,76 @@ class SlotMachine {
         if (this.winRate > 0 && this.currentPaylineCount > 0 && position > 0) {
             // Look at the previous symbol in this strip position
             const prevSymbol = currentStrip[position - 1];
-            
+
             // Skip if previous symbol is wild or scatter
             if (prevSymbol && !prevSymbol.isWild && !prevSymbol.isScatter) {
                 const winRateNormalized = this.winRate / 100.0;
                 const shouldMatch = Math.random() < winRateNormalized;
-                
+
                 if (shouldMatch) {
                     return { ...prevSymbol }; // Return a copy
                 }
             }
         }
-        
+
         return this.getBasicRandomSymbol();
     }
 
     updateGridFromReels() {
-        this.grid = [];
-        for (let row = 0; row < this.config.rows; row++) {
-            this.grid[row] = [];
-            for (let reel = 0; reel < this.config.reels; reel++) {
-                // Ensure reelPositions[reel] is a valid number and integer
-                if (typeof this.reelPositions[reel] !== 'number' || isNaN(this.reelPositions[reel])) {
-                    console.warn(`Invalid reel position for reel ${reel}, resetting to 0`);
-                    this.reelPositions[reel] = 0;
-                }
-                
-                // Ensure position is an integer for consistent indexing
-                this.reelPositions[reel] = Math.floor(this.reelPositions[reel]);
-                
-                // Calculate strip position with proper bounds checking
-                const stripPosition = (this.reelPositions[reel] + row + this.reelStripLength) % this.reelStripLength; // Ensure positive
-                
-                // Ensure stripPosition is a valid integer
-                const safeStripPosition = Math.max(0, Math.floor(stripPosition));
-                
-                // Get symbol with bounds checking
-                let symbol = null;
-                if (this.reelStrips[reel] && this.reelStrips[reel][safeStripPosition]) {
-                    symbol = this.reelStrips[reel][safeStripPosition];
-                }
-                
-                // Safety check to ensure symbol exists
-                if (!symbol || !symbol.id) {
-                    console.warn(`Missing symbol at reel ${reel}, position ${safeStripPosition}, generating new symbol for grid display`);
-                    symbol = this.getBasicRandomSymbol(); // Get a symbol for display
-                    
-                    // Store the new symbol in the strip to maintain consistency ONLY IF reels are randomized
-                    if (this.randomizeReelOnSpin) {
-                        if (this.reelStrips[reel]) {
-                            this.reelStrips[reel][safeStripPosition] = symbol;
-                            console.warn(`Physical reel strip modified due to missing symbol at reel ${reel}, pos ${safeStripPosition}. This should ideally not happen if randomizeReelOnSpin is false.`);
-                        }
-                    } else {
-                        // For physical reels, do not modify the strip. Log it.
-                        console.error(`CRITICAL: Physical reel strip missing symbol at reel ${reel}, pos ${safeStripPosition}. Strip integrity compromised.`);
-                        // Use the random symbol for the grid display only to prevent crashes, but the strip itself remains "broken".
-                    }
-                }
-                
-                // Ensure we have a valid symbol before assigning
-                this.grid[row][reel] = symbol;
+    this.grid = [];
+    for (let row = 0; row < this.config.rows; row++) {
+        this.grid[row] = [];
+        for (let reel = 0; reel < this.config.reels; reel++) {
+            // Ensure reelPositions[reel] is a valid number and integer
+            if (typeof this.reelPositions[reel] !== 'number' || isNaN(this.reelPositions[reel])) {
+                console.warn(`Invalid reel position for reel ${reel}, resetting to 0`);
+                this.reelPositions[reel] = 0;
             }
+
+            // Ensure position is an integer for consistent indexing
+            this.reelPositions[reel] = Math.floor(this.reelPositions[reel]);
+
+            // Calculate strip position with proper bounds checking
+            // This MUST match exactly what drawReel uses for stopped reels
+            const stripPosition = (Math.floor(this.reelPositions[reel]) + row) % this.reelStripLength;
+
+            // Ensure stripPosition is a valid integer
+            const safeStripPosition = Math.max(0, Math.floor(stripPosition));
+
+            // Get symbol with bounds checking
+            let symbol = null;
+            if (this.reelStrips[reel] && this.reelStrips[reel][safeStripPosition]) {
+                symbol = this.reelStrips[reel][safeStripPosition];
+            }
+
+            // Safety check to ensure symbol exists
+            if (!symbol || !symbol.id) {
+                console.warn(`Missing symbol at reel ${reel}, position ${safeStripPosition}, generating new symbol for grid display`);
+                symbol = this.getBasicRandomSymbol();
+
+                // Store the new symbol in the strip to maintain consistency
+                if (this.reelStrips[reel]) {
+                    this.reelStrips[reel][safeStripPosition] = symbol;
+                }
+            }
+
+            // Ensure we have a valid symbol before assigning
+            this.grid[row][reel] = symbol;
         }
     }
+    
+    // DEBUG: Log grid update
+    console.log('Grid updated from reels:');
+    console.log('Reel positions:', this.reelPositions);
+    for (let row = 0; row < this.config.rows; row++) {
+        const rowSymbols = [];
+        for (let reel = 0; reel < this.config.reels; reel++) {
+            const symbol = this.grid[row][reel];
+            rowSymbols.push(symbol.name || symbol.id || 'undefined');
+        }
+        console.log(`Row ${row}:`, rowSymbols);
+    }
+}
 
     // Load images for symbols if image mode is enabled
     async loadImages() {
@@ -484,7 +686,7 @@ class SlotMachine {
             audio.onerror = () => {
                 console.warn(`Failed to load audio: ${soundFiles[key]}`);
                 soundsLoadedCount++; // Count as "loaded" to not block indefinitely
-                 if (soundsLoadedCount === soundsToLoad) {
+                if (soundsLoadedCount === soundsToLoad) {
                     this.audioLoaded = true; // Still mark as loaded to allow game to proceed
                     console.warn("Some audio files failed to load, but proceeding.");
                 }
@@ -540,7 +742,7 @@ class SlotMachine {
         } else {
             if (document.exitFullscreen) {
                 document.exitFullscreen().catch(err => {
-                     console.warn(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
+                    console.warn(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
                 });
             } else if (document.mozCancelFullScreen) { /* Firefox */
                 document.mozCancelFullScreen();
@@ -552,7 +754,7 @@ class SlotMachine {
             // Ensure CSS classes and styles are removed/reset even if API exit fails or isn't used
             document.body.classList.remove('fullscreen-mode');
             if (gameContainer) gameContainer.classList.remove('fullscreen-active');
-            
+
             this.canvas.style.width = ''; // Reset style
             this.canvas.style.height = ''; // Reset style
 
@@ -562,7 +764,7 @@ class SlotMachine {
                 this.canvas.width = this.baseCanvasWidth;
                 this.canvas.height = this.baseCanvasHeight;
             }
-            
+
             document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
             document.removeEventListener('webkitfullscreenchange', this.handleFullscreenChange);
             document.removeEventListener('mozfullscreenchange', this.handleFullscreenChange);
@@ -582,7 +784,7 @@ class SlotMachine {
 
         let availableWidth = window.innerWidth - this.fullscreenPadding.left - this.fullscreenPadding.right;
         let availableHeight = window.innerHeight - this.fullscreenPadding.top - this.fullscreenPadding.bottom;
-        
+
         if (this.isMobile && window.innerWidth > window.innerHeight) {
             availableHeight = window.innerHeight - this.fullscreenPadding.top - (this.fullscreenPadding.bottom * 0.8);
         }
@@ -625,7 +827,7 @@ class SlotMachine {
             // Exited browser fullscreen
             this.isFullscreen = false;
             document.body.classList.remove('fullscreen-mode');
-            
+
             this.canvas.style.width = ''; // Reset style
             this.canvas.style.height = ''; // Reset style
 
@@ -711,7 +913,7 @@ class SlotMachine {
                 vLine.push({ reel: i, row: row });
             }
             for (let i = midReel + 1; i < reels; i++) {
-                const row = Math.max(0, (rows - 1) - (i - (midReel + 1)) -1 ); // Adjusted for 0-indexed rows
+                const row = Math.max(0, (rows - 1) - (i - (midReel + 1)) - 1); // Adjusted for 0-indexed rows
                 vLine.push({ reel: i, row: Math.min(rows - 1, Math.max(0, row)) });
             }
             if (vLine.length >= 3) {
@@ -731,7 +933,7 @@ class SlotMachine {
                 invVLine.push({ reel: i, row: row });
             }
             for (let i = midReel + 1; i < reels; i++) {
-                const row = Math.min(rows - 1, (i - (midReel + 1)) +1); // Adjusted for 0-indexed rows
+                const row = Math.min(rows - 1, (i - (midReel + 1)) + 1); // Adjusted for 0-indexed rows
                 invVLine.push({ reel: i, row: Math.min(rows - 1, Math.max(0, row)) });
             }
             if (invVLine.length >= 3) {
@@ -834,7 +1036,7 @@ class SlotMachine {
                 { reel: 3, row: midRow },
                 { reel: 4, row: rows - 1 }
             ].filter(p => p.row < rows);
-             if (arrowUp.length >= Math.min(3, reels)) {
+            if (arrowUp.length >= Math.min(3, reels)) {
                 lines.push({
                     id: 'arrow_up',
                     name: 'Arrow ↑',
@@ -863,25 +1065,25 @@ class SlotMachine {
         }
 
         if (rows >= 3 && reels >= 5) {
-        // M-shaped pattern with middle on second row (for a 5x3 grid: bottom-top-middle-top-bottom)
-        const mShapeMidRow = [
-            { reel: 0, row: rows - 1 }, // Bottom row
-            { reel: 1, row: 0 },        // Top row
-            { reel: 2, row: 1 },        // Middle row (second row, not midRow)
-            { reel: 3, row: 0 },        // Top row
-            { reel: 4, row: rows - 1 }  // Bottom row
-        ].filter(p => p.row < rows);    // Ensure row is valid
-        
-        if (mShapeMidRow.length >= Math.min(3, reels)) {
-            lines.push({
-                id: 'm_shape_mid',
-                name: 'M-Shape Mid',
-                positions: mShapeMidRow.slice(0, reels),
-                type: 'm-shape-mid',
-                color: this.getPaylineColor(lines.length)
-            });
+            // M-shaped pattern with middle on second row (for a 5x3 grid: bottom-top-middle-top-bottom)
+            const mShapeMidRow = [
+                { reel: 0, row: rows - 1 }, // Bottom row
+                { reel: 1, row: 0 },        // Top row
+                { reel: 2, row: 1 },        // Middle row (second row, not midRow)
+                { reel: 3, row: 0 },        // Top row
+                { reel: 4, row: rows - 1 }  // Bottom row
+            ].filter(p => p.row < rows);    // Ensure row is valid
+
+            if (mShapeMidRow.length >= Math.min(3, reels)) {
+                lines.push({
+                    id: 'm_shape_mid',
+                    name: 'M-Shape Mid',
+                    positions: mShapeMidRow.slice(0, reels),
+                    type: 'm-shape-mid',
+                    color: this.getPaylineColor(lines.length)
+                });
+            }
         }
-    }
 
         if (rows >= 2 && reels >= 3) {
             // Simple zigzag between row 0 and row 1
@@ -889,7 +1091,7 @@ class SlotMachine {
             for (let i = 0; i < reels; i++) {
                 squareWave.push({ reel: i, row: i % 2 });
             }
-            
+
             if (squareWave.length >= Math.min(3, reels)) {
                 lines.push({
                     id: 'square_wave',
@@ -899,13 +1101,13 @@ class SlotMachine {
                     color: this.getPaylineColor(lines.length)
                 });
             }
-            
+
             // Inverted square wave (starting with row 1)
             const invSquareWave = [];
             for (let i = 0; i < reels; i++) {
                 invSquareWave.push({ reel: i, row: (i + 1) % 2 });
             }
-            
+
             if (invSquareWave.length >= Math.min(3, reels)) {
                 lines.push({
                     id: 'inv_square_wave',
@@ -1070,20 +1272,20 @@ class SlotMachine {
                 });
             }
         }
-        
+
         // Add 4 new patterns to reach ~25 for 5x3 grid
         if (rows >= 3 && reels >= 5) {
             const midRow = Math.floor(rows / 2);
 
             const bridge = [
-                { reel: 0, row: 0 }, 
-                { reel: 1, row: 0 }, 
-                { reel: 2, row: midRow }, 
-                { reel: 3, row: rows - 1 }, 
+                { reel: 0, row: 0 },
+                { reel: 1, row: 0 },
+                { reel: 2, row: midRow },
+                { reel: 3, row: rows - 1 },
                 { reel: 4, row: rows - 1 }
             ].filter(p => p.row < rows);
             if (bridge.length >= Math.min(3, reels)) {
-                 lines.push({
+                lines.push({
                     id: 'bridge',
                     name: 'Bridge',
                     positions: bridge.slice(0, reels),
@@ -1093,10 +1295,10 @@ class SlotMachine {
             }
 
             const invBridge = [
-                { reel: 0, row: rows - 1 }, 
-                { reel: 1, row: rows - 1 }, 
-                { reel: 2, row: midRow }, 
-                { reel: 3, row: 0 }, 
+                { reel: 0, row: rows - 1 },
+                { reel: 1, row: rows - 1 },
+                { reel: 2, row: midRow },
+                { reel: 3, row: 0 },
                 { reel: 4, row: 0 }
             ].filter(p => p.row < rows);
             if (invBridge.length >= Math.min(3, reels)) {
@@ -1110,10 +1312,10 @@ class SlotMachine {
             }
 
             const peak = [
-                { reel: 0, row: midRow }, 
-                { reel: 1, row: 0 }, 
-                { reel: 2, row: 0 }, 
-                { reel: 3, row: 0 }, 
+                { reel: 0, row: midRow },
+                { reel: 1, row: 0 },
+                { reel: 2, row: 0 },
+                { reel: 3, row: 0 },
                 { reel: 4, row: midRow }
             ].filter(p => p.row < rows);
             if (peak.length >= Math.min(3, reels)) {
@@ -1127,14 +1329,14 @@ class SlotMachine {
             }
 
             const valley = [
-                { reel: 0, row: midRow }, 
-                { reel: 1, row: rows - 1 }, 
-                { reel: 2, row: rows - 1 }, 
-                { reel: 3, row: rows - 1 }, 
+                { reel: 0, row: midRow },
+                { reel: 1, row: rows - 1 },
+                { reel: 2, row: rows - 1 },
+                { reel: 3, row: rows - 1 },
                 { reel: 4, row: midRow }
             ].filter(p => p.row < rows);
             if (valley.length >= Math.min(3, reels)) {
-                 lines.push({
+                lines.push({
                     id: 'valley',
                     name: 'Valley',
                     positions: valley.slice(0, reels),
@@ -1165,7 +1367,7 @@ class SlotMachine {
         }
         return strip;
     }
-    
+
     // Generate a random symbol with intelligent win rate consideration
     getRandomSymbol(reelIndex = -1, rowIndex = -1) {
         // This method is now only used for initial generation
@@ -1194,7 +1396,7 @@ class SlotMachine {
                 // console.warn(`Error playing sound ${soundName}:`, error);
             });
         }
-        return audio; 
+        return audio;
     }
 
     stopSound(soundName) {
@@ -1243,7 +1445,7 @@ class SlotMachine {
         if (!this.hasInteracted) {
             this.hasInteracted = true;
             if (this.audioLoaded) {
-                 this.playBgMusic();
+                this.playBgMusic();
             }
         }
     }
@@ -1251,31 +1453,31 @@ class SlotMachine {
     drawReel(reelIndex) {
         const reelX = reelIndex * this.reelWidth;
         const state = this.reelAnimationState[reelIndex];
-        
+
         // During any animation state, show appropriate symbols
         if (state !== 'stopped') {
             // Calculate how many symbols we need to fill the visible area plus buffer
             const totalVisibleSymbols = this.config.rows + 4;
-            
+
             // Calculate the current offset position in the strip
             const currentOffset = this.reelOffsets[reelIndex];
             const symbolHeight = this.rowHeight;
-            
+
             // Draw symbols in a continuous strip
             for (let i = -2; i < totalVisibleSymbols; i++) {
                 let stripIndex;
                 let symbolY;
-                
+
                 if (state === 'settling') {
                     // During settling, use a more stable calculation
                     const basePosition = Math.floor(this.reelPositions[reelIndex]);
                     stripIndex = (basePosition + i + this.reelStripLength) % this.reelStripLength;
-                    symbolY = (i * symbolHeight) - currentOffset; // Invert offset for settling
+                    symbolY = (i * symbolHeight) - currentOffset;
                 } else {
                     // During spinning/easing, use current position
                     const direction = this.reelSpeeds[reelIndex] > 0 ? 1 : -1;
                     const basePosition = Math.floor(this.reelPositions[reelIndex]);
-                    
+
                     if (direction > 0) {
                         stripIndex = (basePosition + Math.floor(currentOffset / symbolHeight) + i + this.reelStripLength) % this.reelStripLength;
                         symbolY = (i * symbolHeight) - (currentOffset % symbolHeight);
@@ -1284,42 +1486,55 @@ class SlotMachine {
                         symbolY = (i * symbolHeight) + (currentOffset % symbolHeight);
                     }
                 }
-                
+
                 // Ensure stripIndex is valid and positive
                 stripIndex = Math.max(0, Math.floor(stripIndex));
-                
+
                 // Get symbol with bounds checking
-                const symbol = this.reelStrips[reelIndex] && this.reelStrips[reelIndex][stripIndex] 
-                    ? this.reelStrips[reelIndex][stripIndex] 
+                const symbol = this.reelStrips[reelIndex] && this.reelStrips[reelIndex][stripIndex]
+                    ? this.reelStrips[reelIndex][stripIndex]
                     : this.getBasicRandomSymbol();
-                
+
                 // Add subtle blur effect during fast spinning (but not during settling or in fullscreen)
                 const applyBlur = state === 'spinning' && this.reelEasingFactors[reelIndex] > 0.8 && !this.isFullscreen;
                 if (applyBlur) {
                     this.ctx.save();
                     this.ctx.filter = `blur(${Math.min(1.5, (1 - this.reelEasingFactors[reelIndex]) * 6)}px)`;
                 }
-                
+
                 if (symbolY > -symbolHeight && symbolY < this.canvas.height + symbolHeight && symbol) {
                     this.drawSymbol(symbol, reelX, symbolY, this.reelWidth, symbolHeight);
                 }
-                
+
                 if (applyBlur) {
                     this.ctx.restore();
                 }
             }
         } else {
-            // When completely stopped, show the static symbols from the exact target positions
+            // When completely stopped, show the static symbols using EXACT same calculation as updateGridFromReels
             for (let row = 0; row < this.config.rows; row++) {
-                const stripPosition = (Math.floor(this.reelTargetPositions[reelIndex]) + row) % this.reelStripLength;
+                // This calculation MUST match exactly what updateGridFromReels uses
+                const stripPosition = (Math.floor(this.reelPositions[reelIndex]) + row) % this.reelStripLength;
                 const safeStripPosition = Math.max(0, Math.floor(stripPosition));
-                
-                let symbol = this.reelStrips[reelIndex] && this.reelStrips[reelIndex][safeStripPosition] 
-                    ? this.reelStrips[reelIndex][safeStripPosition] 
-                    : this.getBasicRandomSymbol();
-                
+
+                let symbol = null;
+                if (this.reelStrips[reelIndex] && this.reelStrips[reelIndex][safeStripPosition]) {
+                    symbol = this.reelStrips[reelIndex][safeStripPosition];
+                }
+
+                // Safety check to ensure symbol exists - use same fallback as updateGridFromReels
+                if (!symbol || !symbol.id) {
+                    console.warn(`Missing symbol at reel ${reelIndex}, position ${safeStripPosition}, generating new symbol for display`);
+                    symbol = this.getBasicRandomSymbol();
+
+                    // Store the new symbol in the strip to maintain consistency
+                    if (this.reelStrips[reelIndex]) {
+                        this.reelStrips[reelIndex][safeStripPosition] = symbol;
+                    }
+                }
+
                 const y = row * this.rowHeight;
-                
+
                 if (symbol) {
                     this.drawSymbol(symbol, reelX, y, this.reelWidth, this.rowHeight);
                 }
@@ -1347,7 +1562,7 @@ class SlotMachine {
 
         let speedDescription = "";
         let direction = "";
-        
+
         if (value < 0) {
             direction = "Upward ";
             if (Math.abs(value) <= 10) speedDescription = "Slow";
@@ -1372,7 +1587,7 @@ class SlotMachine {
         if (this.isSpinning) return;
 
         this.randomizeReelOnSpin = !this.randomizeReelOnSpin;
-        
+
         // Regenerate reels based on new setting
         this.generateReelStrips();
         this.updateGridFromReels();
@@ -1475,8 +1690,8 @@ class SlotMachine {
         }
 
         return symbolSubset[0]; // Fallback
-    } 
-    
+    }
+
     adjustSymbolProbabilities() {
         // Simply return symbols with their original probabilities
         // Win rate is now handled in getRandomSymbol instead
@@ -1485,10 +1700,10 @@ class SlotMachine {
             adjustedProbability: symbol.probability
         }));
     }
-    
+
     spin() {
         if (this.isSpinning) return;
-        this.handleFirstInteraction(); 
+        this.handleFirstInteraction();
 
         if (this.isInFreeSpins && this.freeSpinsCount > 0) {
             this.currentFreeSpinNumber++;
@@ -1512,7 +1727,7 @@ class SlotMachine {
         document.getElementById('spinButton').disabled = true;
         // Toast for spinning is now conditional or handled by free spin toast
         if (!(this.isInFreeSpins && this.freeSpinsCount >= 0)) { // Check >=0 as it's about to be decremented
-             this.showToast("🎰 Spinning reels...", 'info', 1500);
+            this.showToast("🎰 Spinning reels...", 'info', 1500);
         }
 
         const currentTime = Date.now();
@@ -1529,20 +1744,20 @@ class SlotMachine {
 
         for (let i = 0; i < this.config.reels; i++) {
             this.reelAnimationState[i] = 'spinning';
-            this.reelEasingFactors[i] = 1.0; 
-            this.reelSpeeds[i] = this.spinSpeed + Math.random() * 5; 
+            this.reelEasingFactors[i] = 1.0;
+            this.reelSpeeds[i] = this.spinSpeed + Math.random() * 5;
             this.spinStartTimes[i] = currentTime;
-            this.reelSettlingSpeeds[i] = 0.06; 
+            this.reelSettlingSpeeds[i] = 0.06;
 
             const easeStartDelay = 1500 + (i * 300) + Math.random() * 200;
-            
+
             setTimeout(() => {
                 this.startReelEasing(i);
             }, easeStartDelay);
         }
-        
+
         if (this.activeReelSpinSound) { // Stop previous if any (shouldn't happen if logic is correct)
-            this.stopSound('reelSpin'); 
+            this.stopSound('reelSpin');
         }
         this.activeReelSpinSound = this.playSound('reelSpin');
 
@@ -1595,39 +1810,39 @@ class SlotMachine {
 
         for (let i = 0; i < this.config.reels; i++) {
             const state = this.reelAnimationState[i];
-            
+
             if (state === 'spinning') {
                 spinningReelsCount++;
-                this.reelOffsets[i] += Math.abs(this.reelSpeeds[i]); 
-                
+                this.reelOffsets[i] += Math.abs(this.reelSpeeds[i]);
+
                 while (this.reelOffsets[i] >= this.rowHeight) {
                     this.reelOffsets[i] -= this.rowHeight;
                     const spinDirection = Math.sign(this.reelSpeeds[i]) || Math.sign(this.spinSpeed) || 1;
-                    if (spinDirection > 0) { 
+                    if (spinDirection > 0) {
                         this.reelPositions[i] = (this.reelPositions[i] + 1) % this.reelStripLength;
-                    } else { 
+                    } else {
                         this.reelPositions[i] = (this.reelPositions[i] - 1 + this.reelStripLength) % this.reelStripLength;
                     }
                 }
                 allReelsActuallyStopped = false;
-                
+
             } else if (state === 'easing') {
-                this.reelEasingFactors[i] *= 0.97; 
-                
+                this.reelEasingFactors[i] *= 0.97;
+
                 const currentSymbolIndexAtTop_easing = this.reelPositions[i];
                 let currentSubPixelOffset_easing = this.reelOffsets[i] % this.rowHeight;
                 if (currentSubPixelOffset_easing < 0) currentSubPixelOffset_easing += this.rowHeight;
 
-                if (this.reelEasingFactors[i] < 0.15) { 
+                if (this.reelEasingFactors[i] < 0.15) {
                     this.reelAnimationState[i] = 'settling';
                     this.playSound('reelStop');
-                    
+
                     const originalSpinDirection = Math.sign(this.reelSpeeds[i]) || Math.sign(this.spinSpeed) || 1;
-                    
+
                     let visualContinuousPosition_endEase;
-                    if (originalSpinDirection > 0) { 
+                    if (originalSpinDirection > 0) {
                         visualContinuousPosition_endEase = currentSymbolIndexAtTop_easing + (currentSubPixelOffset_easing / this.rowHeight);
-                    } else { 
+                    } else {
                         visualContinuousPosition_endEase = currentSymbolIndexAtTop_easing - (currentSubPixelOffset_easing / this.rowHeight);
                     }
                     visualContinuousPosition_endEase = (visualContinuousPosition_endEase % this.reelStripLength + this.reelStripLength) % this.reelStripLength;
@@ -1639,25 +1854,25 @@ class SlotMachine {
                         targetSymbolIndex = Math.floor(visualContinuousPosition_endEase);
                     }
                     targetSymbolIndex = (targetSymbolIndex % this.reelStripLength + this.reelStripLength) % this.reelStripLength;
-                    
-                    this.reelTargetPositions[i] = targetSymbolIndex; 
+
+                    this.reelTargetPositions[i] = targetSymbolIndex;
 
                     let initialSettlingOffset = (visualContinuousPosition_endEase - targetSymbolIndex) * this.rowHeight;
-                    
+
                     const halfStripPixels = (this.reelStripLength / 2) * this.rowHeight;
                     if (initialSettlingOffset > halfStripPixels) {
                         initialSettlingOffset -= this.reelStripLength * this.rowHeight;
                     } else if (initialSettlingOffset < -halfStripPixels) {
                         initialSettlingOffset += this.reelStripLength * this.rowHeight;
                     }
-                    
-                    this.reelOffsets[i] = initialSettlingOffset; 
-                    this.reelPositions[i] = targetSymbolIndex; 
-                                        
+
+                    this.reelOffsets[i] = initialSettlingOffset;
+                    this.reelPositions[i] = targetSymbolIndex;
+
                 } else {
                     const easedSpeed = Math.abs(this.reelSpeeds[i]) * this.reelEasingFactors[i];
-                    this.reelOffsets[i] += easedSpeed; 
-                    
+                    this.reelOffsets[i] += easedSpeed;
+
                     const spinDirection = Math.sign(this.reelSpeeds[i]) || Math.sign(this.spinSpeed) || 1;
                     while (this.reelOffsets[i] >= this.rowHeight) {
                         this.reelOffsets[i] -= this.rowHeight;
@@ -1667,50 +1882,50 @@ class SlotMachine {
                             this.reelPositions[i] = (this.reelPositions[i] - 1 + this.reelStripLength) % this.reelStripLength;
                         }
                     }
-                     while (this.reelOffsets[i] < 0) { 
+                    while (this.reelOffsets[i] < 0) {
                         this.reelOffsets[i] += this.rowHeight;
-                        if (spinDirection < 0) { 
-                             this.reelPositions[i] = (this.reelPositions[i] - 1 + this.reelStripLength) % this.reelStripLength;
-                        } else { 
-                             this.reelPositions[i] = (this.reelPositions[i] + 1) % this.reelStripLength;
+                        if (spinDirection < 0) {
+                            this.reelPositions[i] = (this.reelPositions[i] - 1 + this.reelStripLength) % this.reelStripLength;
+                        } else {
+                            this.reelPositions[i] = (this.reelPositions[i] + 1) % this.reelStripLength;
                         }
                     }
                 }
                 allReelsActuallyStopped = false;
-                
+
             } else if (state === 'settling') {
                 const settleSpeedFactor = this.reelSettlingSpeeds[i] || 0.06;
-                const snapThreshold = 0.5; 
+                const snapThreshold = 0.5;
 
                 if (Math.abs(this.reelOffsets[i]) < snapThreshold) {
                     this.reelOffsets[i] = 0;
                     this.reelAnimationState[i] = 'stopped';
-                    this.reelPositions[i] = Math.floor(this.reelTargetPositions[i]); 
+                    this.reelPositions[i] = Math.floor(this.reelTargetPositions[i]);
                 } else {
-                    this.reelOffsets[i] *= (1 - settleSpeedFactor); 
+                    this.reelOffsets[i] *= (1 - settleSpeedFactor);
                 }
                 if (this.reelAnimationState[i] !== 'stopped') {
                     allReelsActuallyStopped = false;
                 }
-                
+
             } else if (state === 'stopped') {
                 // Reel is stopped
             }
         }
-        
+
         if (spinningReelsCount === 0 && this.activeReelSpinSound) {
-             this.stopSound('reelSpin');
+            this.stopSound('reelSpin');
         }
-        
+
         this.draw();
 
         if (!allReelsActuallyStopped) {
             requestAnimationFrame(() => this.animate());
         } else {
-            if (this.activeReelSpinSound) { 
+            if (this.activeReelSpinSound) {
                 this.stopSound('reelSpin');
             }
-            this.updateGridFromReels(); 
+            this.updateGridFromReels();
             this.checkWin(); // Process wins and potentially award/update free spins
             this.isSpinning = false; // Mark as not spinning *before* deciding next action
 
@@ -1836,8 +2051,8 @@ class SlotMachine {
             this.ctx.lineTo(this.canvas.width, y);
             this.ctx.stroke();
         }
-    } 
-    
+    }
+
     drawSymbol(symbol, x, y, width, height) {
         // Safety check for undefined symbol
         if (!symbol || !symbol.name) {
@@ -1917,13 +2132,13 @@ class SlotMachine {
         // Use simpler animation during wins to prevent lag
         const isWinning = this.activePaylines.length > 0;
         const time = Date.now() / 1000;
-        
+
         let pulse, gradient;
-        
+
         if (isWinning) {
             // Simplified animation during wins to prevent lag
             pulse = 0.9; // Static pulse during wins
-            
+
             // Static gradient during wins
             gradient = this.ctx.createRadialGradient(
                 x + width / 2, y + height / 2, 0,
@@ -1996,13 +2211,13 @@ class SlotMachine {
         // Use simpler animation during wins to prevent lag
         const isWinning = this.activePaylines.length > 0;
         const time = Date.now() / 1000;
-        
+
         let sparkle, gradient;
-        
+
         if (isWinning) {
             // Simplified animation during wins
             sparkle = 0.8; // Static sparkle during wins
-            
+
             // Static golden gradient
             gradient = this.ctx.createRadialGradient(
                 x + width / 2, y + height / 2, 0,
@@ -2088,20 +2303,87 @@ class SlotMachine {
     }
 
     countScatterSymbols() {
-            let scatterCount = 0;
-            
-            // Count scatter symbols across the entire grid
-            for (let row = 0; row < this.config.rows; row++) {
-                for (let reel = 0; reel < this.config.reels; reel++) {
-                    if (this.grid[row] && this.grid[row][reel] && this.grid[row][reel].isScatter) {
-                        scatterCount++;
-                    }
+        let scatterCount = 0;
+
+        // Count scatter symbols across the entire grid
+        for (let row = 0; row < this.config.rows; row++) {
+            for (let reel = 0; reel < this.config.reels; reel++) {
+                if (this.grid[row] && this.grid[row][reel] && this.grid[row][reel].isScatter) {
+                    scatterCount++;
                 }
             }
-            
-            return scatterCount;
         }
-    
+
+        return scatterCount;
+    }
+
+    checkWins() {
+        const wins = [];
+
+        this.paylines.slice(0, this.activePaylines).forEach((payline, paylineIndex) => {
+            const symbols = payline.positions.map(pos => this.grid[pos.row][pos.reel]);
+
+            // Check for winning combinations starting from the left
+            let consecutiveCount = 1;
+            let currentSymbol = symbols[0];
+
+            // Skip if first symbol is scatter (scatters don't form payline wins)
+            if (currentSymbol.isScatter) return;
+
+            // Count consecutive matching symbols (including wilds)
+            for (let i = 1; i < symbols.length; i++) {
+                const nextSymbol = symbols[i];
+
+                // Check if symbols match (accounting for wilds)
+                if (this.symbolsMatch(currentSymbol, nextSymbol)) {
+                    consecutiveCount++;
+
+                    // If current symbol is wild but next isn't, update current symbol
+                    if (currentSymbol.isWild && !nextSymbol.isWild && !nextSymbol.isScatter) {
+                        currentSymbol = nextSymbol;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            // Check if we have a winning combination
+            if (consecutiveCount >= this.minWinLength) {
+                // Determine the actual symbol for payout (not wild)
+                let payoutSymbol = currentSymbol;
+                if (currentSymbol.isWild) {
+                    // If all symbols are wild, use the wild symbol itself
+                    payoutSymbol = symbols.find(s => !s.isWild && !s.isScatter) || currentSymbol;
+                }
+
+                const baseWin = this.calculateWin(payoutSymbol, consecutiveCount);
+
+                wins.push({
+                    payline: paylineIndex,
+                    symbol: payoutSymbol,
+                    count: consecutiveCount,
+                    positions: payline.positions.slice(0, consecutiveCount),
+                    payout: baseWin
+                });
+            }
+        });
+
+        return wins;
+    }
+
+    calculateWin(symbol, count) {
+        if (!symbol || symbol.value <= 0 || count < this.minWinLength) {
+            return 0;
+        }
+
+        let multiplier = 1;
+        if (count === 4) multiplier = 3;
+        else if (count === 5) multiplier = 5;
+        else if (count >= 6) multiplier = 8;
+
+        return Math.floor(symbol.value * multiplier * this.betAmount);
+    }
+
     checkWin() {
         let totalWin = 0;
         let totalWildsUsed = 0;
@@ -2133,7 +2415,7 @@ class SlotMachine {
                 this.currentFreeSpinNumber = 0;
                 this.totalFreeSpinsAwarded = 0;
             }
-            
+
             this.isInFreeSpins = true;
             this.freeSpinsCount += newFreeSpinsAwardedThisCheck;
             this.totalFreeSpinsAwarded += newFreeSpinsAwardedThisCheck;
@@ -2145,44 +2427,44 @@ class SlotMachine {
                 scatterFeatureMessage += `${scatterCount} Scatters pay ${this.formatCurrency(scatterPayout)}!<br/>`;
             }
             if (this.totalFreeSpinsAwarded > newFreeSpinsAwardedThisCheck && this.isInFreeSpins && newFreeSpinsAwardedThisCheck > 0) {
-                 scatterFeatureMessage += `RE-TRIGGER! +${newFreeSpinsAwardedThisCheck} Free Spins!<br/>`;
+                scatterFeatureMessage += `RE-TRIGGER! +${newFreeSpinsAwardedThisCheck} Free Spins!<br/>`;
             } else if (newFreeSpinsAwardedThisCheck > 0) {
-                 scatterFeatureMessage += `${newFreeSpinsAwardedThisCheck} Free Spins Awarded!<br/>`;
+                scatterFeatureMessage += `${newFreeSpinsAwardedThisCheck} Free Spins Awarded!<br/>`;
             }
             scatterFeatureMessage += `Total Free Spins: ${this.freeSpinsCount}`;
             this.showToast(scatterFeatureMessage, 'warning', 6000);
         } else if (scatterPayout > 0) { // Payout for 2 scatters (or more, if threshold is >2 and not met for FS)
             this.showToast(`🌟 ${scatterCount} Scatters pay ${this.formatCurrency(scatterPayout)}!`, 'win', 4000);
         }
-        
+
         if (scatterPayout > 0) {
             totalWin += scatterPayout;
         }
 
         // Check payline wins
-        if (this.currentPaylineCount > 0 || (this.isInFreeSpins && totalBetStaked > 0)) { // Allow payline wins in FS even if lines were 0
+        if (this.currentPaylineCount > 0 || (this.isInFreeSpins && totalBetStaked > 0)) {
+            // Check each active payline for wins
             for (let i = 0; i < this.currentPaylineCount && i < this.paylines.length; i++) {
                 const payline = this.paylines[i];
-                let lineResult = this.checkPayline(payline);
+                const result = this.checkPayline(payline);
 
-                if (lineResult.payout > 0) {
-                    let PayoutOnLine = lineResult.payout;
+                if (result.payout > 0) {
+                    let payoutOnLine = result.payout;
                     if (this.isInFreeSpins) {
-                        PayoutOnLine = Math.round(PayoutOnLine * this.freeSpinMultiplier);
+                        payoutOnLine = Math.round(payoutOnLine * this.freeSpinMultiplier);
                     }
-                    totalWin += PayoutOnLine; // Add to totalWin (scatterPayout might already be there)
-                    totalWildsUsed += lineResult.wildsUsed;
+                    totalWin += payoutOnLine;
+                    totalWildsUsed += result.wildsUsed;
                     this.activePaylines.push(payline);
                 }
             }
         }
 
-
         if (totalWin > 0) {
             this.balance += totalWin; // Balance was already reduced by bet, or not if free spin
-            this.playSound('coin'); 
+            this.playSound('coin');
 
-            const winThreshold = totalBetStaked * 10; 
+            const winThreshold = totalBetStaked * 10;
             let playedWinSound = false;
 
             if (newFreeSpinsAwardedThisCheck > 0) {
@@ -2204,7 +2486,7 @@ class SlotMachine {
             let message = `🎉 <strong>WIN!</strong><br/>+${this.formatCurrency(totalWin)}`;
             let details = [];
             if (this.activePaylines.length > 0) {
-                 details.push(`on ${this.activePaylines.length} line(s)`);
+                details.push(`on ${this.activePaylines.length} line(s)`);
             }
             if (scatterPayout > 0 && lineWinAmount > 0) { // Both line wins and scatter pay
                 details.push(`(incl. ${this.formatCurrency(scatterPayout)} from scatters)`);
@@ -2215,14 +2497,14 @@ class SlotMachine {
                 message += " " + details.join(" ");
             }
             message += `!`;
-            
+
             if (totalWildsUsed > 0) {
                 message += `<br/>🃏 ${totalWildsUsed} Wild${totalWildsUsed > 1 ? 's' : ''} helped!`;
             }
             if (this.isInFreeSpins && (lineWinAmount > 0 || scatterPayout > 0)) { // Check if the win happened during FS
                 message += `<br/>💰 x${this.freeSpinMultiplier} Free Spin Multiplier!`;
             }
-            if (totalWin >= 100 && totalBetStaked > 0 && totalWin / totalBetStaked >= 50) { 
+            if (totalWin >= 100 && totalBetStaked > 0 && totalWin / totalBetStaked >= 50) {
                 message += '<br/>💎 MEGA WIN! 💎';
             } else if (totalWin >= 50 && totalBetStaked > 0 && totalWin / totalBetStaked >= 25) {
                 message += '<br/>💰 BIG WIN! 💰';
@@ -2261,6 +2543,28 @@ class SlotMachine {
         }
     }
 
+    // Add this helper method to count wilds in winning positions
+    countWildsInPositions(positions) {
+        let wildCount = 0;
+        for (const pos of positions) {
+            if (this.grid[pos.row] && this.grid[pos.row][pos.reel] && this.grid[pos.row][pos.reel].isWild) {
+                wildCount++;
+            }
+        }
+        return wildCount;
+    }
+
+    // Add the symbolsMatch helper method that checkWins() uses
+    symbolsMatch(symbol1, symbol2) {
+        // If either symbol is wild, they match (unless the other is scatter)
+        if (symbol1.isWild || symbol2.isWild) {
+            return !symbol1.isScatter && !symbol2.isScatter;
+        }
+
+        // If neither is wild, they must be the same symbol
+        return symbol1.id === symbol2.id;
+    }
+
     changeSpinSpeed(value) {
         if (this.isSpinning) return;
 
@@ -2280,7 +2584,7 @@ class SlotMachine {
         if (this.isSpinning) return;
 
         this.randomizeReelOnSpin = !this.randomizeReelOnSpin;
-        
+
         // Regenerate reels based on new setting
         this.generateReelStrips();
         this.updateGridFromReels();
@@ -2311,74 +2615,74 @@ class SlotMachine {
         }
 
         const firstSymbol = validSymbols[0];
-        
+
         if (firstSymbol.isWild) {
             let targetSymbol = null;
-            // Try to find the first non-wild, non-scatter symbol on the line to determine what the wild substitutes for
+            // Try to find the first non-wild, non-scatter symbol on the line
             for (let i = 1; i < validSymbols.length; i++) {
                 if (validSymbols[i] && !validSymbols[i].isWild && !validSymbols[i].isScatter) {
                     targetSymbol = validSymbols[i];
                     break;
                 }
             }
-            
-            // If no such symbol is found on the line (e.g., line is W,W,W or W,W,Scatter),
-            // wild should substitute for the highest paying regular symbol in the game.
+
+            // If no target symbol found, use highest value regular symbol
             if (!targetSymbol) {
-                const highestValueRegularSymbols = this.symbols // from the main game symbols list
+                const highestValueRegularSymbols = this.symbols
                     .filter(s => s && !s.isWild && !s.isScatter && s.value > 0)
                     .sort((a, b) => b.value - a.value);
-                
+
                 if (highestValueRegularSymbols.length > 0) {
                     targetSymbol = highestValueRegularSymbols[0];
                 } else {
-                    // If there are no regular paying symbols in the game (config error),
-                    // a line of wilds cannot determine a value.
-                    console.warn("No regular paying symbol found for wild substitution. Line of wilds cannot determine payout value.");
-                    return bestMatch; // Cannot determine a symbol to pay for
+                    return bestMatch;
                 }
             }
-            
+
             let count = 0;
-            let wildsUsedOnThisLine = 0; 
-            
+            let wildsUsedOnThisLine = 0;
+
+            // Count consecutive matches from the left
             for (let i = 0; i < validSymbols.length; i++) {
-                // A position matches if it's the targetSymbol or if it's a Wild
                 if (validSymbols[i] && targetSymbol && validSymbols[i].id === targetSymbol.id) {
                     count++;
                 } else if (validSymbols[i] && validSymbols[i].isWild) {
                     count++;
                     wildsUsedOnThisLine++;
                 } else {
-                    // Stop at the first symbol that is neither the target nor a Wild
+                    // Break on first non-matching symbol
                     break;
                 }
             }
             bestMatch = { count, symbol: targetSymbol, wildsUsed: wildsUsedOnThisLine };
 
         } else if (firstSymbol.isScatter) {
-            // Scatters do not form payline wins in this model; they are handled separately.
-            return bestMatch; 
-        } else { // First symbol is a regular, non-wild, non-scatter symbol
+            // Scatters don't form payline wins
+            return bestMatch;
+        } else {
+            // Regular symbol - count consecutive matches from left
             let count = 0;
             let wildsUsedOnThisLine = 0;
-            const targetSymbol = firstSymbol; // The symbol we are matching
-            
+            const targetSymbol = firstSymbol;
+
+            // Count consecutive matching symbols from the left
             for (let i = 0; i < validSymbols.length; i++) {
-                if (validSymbols[i] && targetSymbol && validSymbols[i].id === targetSymbol.id) {
+                if (validSymbols[i] && validSymbols[i].id === targetSymbol.id) {
                     count++;
                 } else if (validSymbols[i] && validSymbols[i].isWild) {
                     count++;
                     wildsUsedOnThisLine++;
                 } else {
+                    // Break on first non-matching, non-wild symbol
                     break;
                 }
             }
             bestMatch = { count, symbol: targetSymbol, wildsUsed: wildsUsedOnThisLine };
         }
+
         return bestMatch;
     }
-    
+
     checkPayline(payline) {
         const symbols = [];
 
@@ -2386,35 +2690,56 @@ class SlotMachine {
             return { payout: 0, wildsUsed: 0 };
         }
 
+        // Collect symbols from payline positions
         for (const pos of payline.positions) {
             if (pos.row >= 0 && pos.row < this.config.rows &&
                 pos.reel >= 0 && pos.reel < this.config.reels &&
                 this.grid[pos.row] && this.grid[pos.row][pos.reel]) {
                 symbols.push(this.grid[pos.row][pos.reel]);
             } else {
+                console.warn(`Invalid position in payline: reel ${pos.reel}, row ${pos.row}`);
                 return { payout: 0, wildsUsed: 0 };
             }
         }
 
         if (symbols.length < this.minWinLength) return { payout: 0, wildsUsed: 0 };
 
+        // DEBUG: Log the payline positions and symbols
+        console.log(`Checking payline ${payline.id}:`);
+        console.log('Positions:', payline.positions);
+        console.log('Symbols:', symbols.map((s, i) => `[${payline.positions[i].reel},${payline.positions[i].row}]: ${s.name || s.id}`));
+        
+        // DEBUG: Log the entire grid for comparison
+        console.log('Current grid:');
+        for (let row = 0; row < this.config.rows; row++) {
+            const rowSymbols = [];
+            for (let reel = 0; reel < this.config.reels; reel++) {
+                const symbol = this.grid[row] && this.grid[row][reel] ? this.grid[row][reel] : 'undefined';
+                rowSymbols.push(symbol.name || symbol.id || 'undefined');
+            }
+            console.log(`Row ${row}:`, rowSymbols);
+        }
+
         const bestMatch = this.findBestMatchFromLeft(symbols);
 
-        // Ensure a valid symbol was matched, it has a value, and the count meets minWinLength
+        // DEBUG: Log the result
+        console.log(`Best match:`, bestMatch);
+
+        // Check if we have a valid win
         if (bestMatch.symbol && bestMatch.symbol.value > 0 && bestMatch.count >= this.minWinLength) {
             let multiplier = 1;
             if (bestMatch.count === 4) multiplier = 3;
             else if (bestMatch.count === 5) multiplier = 5;
-            else if (bestMatch.count >= 6) multiplier = 8; // For 6+ reel grids (cap at 5 for 5-reel)
-            
-            if (this.config.reels === 5 && bestMatch.count > 5) bestMatch.count = 5; // Cap for multiplier calc if grid is 5 reels
+            else if (bestMatch.count >= 6) multiplier = 8;
 
             if (bestMatch.wildsUsed > 0) {
                 multiplier *= 1.5;
             }
 
             const payout = Math.floor(bestMatch.symbol.value * multiplier * this.betAmount);
-            
+
+            console.log(`Payout calculated: ${payout} (${bestMatch.count} symbols, multiplier: ${multiplier})`);
+
             return { payout, wildsUsed: bestMatch.wildsUsed };
         }
 
@@ -2444,8 +2769,8 @@ class SlotMachine {
         };
 
         flash();
-    } 
-    
+    }
+
     showMessage(text, duration = 3000) {
         // Use toast instead since 'message' element doesn't exist
         this.showToast(text, 'info', duration);
@@ -2489,8 +2814,8 @@ class SlotMachine {
                 }
             }, 400);
         }
-    } 
-    
+    }
+
     updateDisplay() {
         document.getElementById('coinCount').textContent = this.formatCurrency(this.balance);
         document.getElementById('betAmount').textContent = this.formatCurrency(this.betAmount);
@@ -2505,14 +2830,14 @@ class SlotMachine {
         if (this.isInFreeSpins && this.totalFreeSpinsAwarded > 0) {
             freeSpinsDisplayEl.innerHTML = `Free Spin: ${this.currentFreeSpinNumber} / ${this.totalFreeSpinsAwarded}<br/>(${this.freeSpinsCount} remaining)`;
             freeSpinsDisplayEl.style.display = 'block';
-            if (spinButton) spinButton.disabled = true; 
+            if (spinButton) spinButton.disabled = true;
         } else {
             freeSpinsDisplayEl.style.display = 'none';
             if (spinButton && !this.isSpinning) {
-                 spinButton.disabled = false;
+                spinButton.disabled = false;
             }
         }
-        
+
         // Ensure spin button is always disabled if isSpinning is true, regardless of free spins
         if (this.isSpinning && spinButton) {
             spinButton.disabled = true;
@@ -2526,14 +2851,14 @@ class SlotMachine {
         const oldBetAmount = this.betAmount;
         const newBet = this.betAmount + (delta * this.betIncrement);
         if (newBet >= this.minBet && newBet <= this.maxBet) {
-            this.betAmount = Math.round(newBet * 100) / 100; 
-            if (this.betAmount !== oldBetAmount) { 
+            this.betAmount = Math.round(newBet * 100) / 100;
+            if (this.betAmount !== oldBetAmount) {
                 this.playSound('coin');
             }
             this.updateDisplay();
         }
     }
-    
+
     changePaylines(delta) {
         this.handleFirstInteraction();
         if (this.isSpinning) return;
@@ -2542,9 +2867,9 @@ class SlotMachine {
         if (newCount >= 1 && newCount <= this.maxPaylines) {
             this.currentPaylineCount = newCount;
             this.updateDisplay();
-            this.draw(); 
+            this.draw();
         }
-    } 
+    }
 
     applyWinRateToNextReel(currentReelIndex) {
         if (this.currentPaylineCount === 0) return;
@@ -2554,7 +2879,7 @@ class SlotMachine {
 
         // Make win rate much more aggressive and consistent
         const winRateNormalized = this.winRate / 100.0;
-        
+
         // More aggressive scaling: 0% = almost no wins, 100% = almost guaranteed wins
         let influenceChance;
         if (this.winRate === 0) {
@@ -2570,35 +2895,35 @@ class SlotMachine {
         for (let row = 0; row < this.config.rows; row++) {
             const currentStripPosition = (this.reelPositions[currentReelIndex] + row) % this.reelStripLength;
             const currentSymbol = this.reelStrips[currentReelIndex][currentStripPosition];
-            
+
             // Skip wild and scatter symbols - we want to create regular symbol matches
             if (!currentSymbol || currentSymbol.isWild || currentSymbol.isScatter) continue;
 
             // Check if we should influence the next reel based on aggressive win rate
             const shouldInfluence = Math.random() < influenceChance;
-            
+
             if (shouldInfluence) {
                 // Determine target positions in next reel (same row, row above, row below)
                 const targetRows = [row]; // Always include same row
                 if (row > 0) targetRows.push(row - 1); // Row above if exists
                 if (row < this.config.rows - 1) targetRows.push(row + 1); // Row below if exists
-                
+
                 // Choose one of the target rows randomly
                 const targetRow = targetRows[Math.floor(Math.random() * targetRows.length)];
-                
+
                 // Calculate the strip position for this target row in next reel
                 const nextReelStripPosition = (this.reelPositions[nextReelIndex] + targetRow) % this.reelStripLength;
-                
+
                 // Replace the symbol at this position with a matching one (create horizontal match)
                 this.reelStrips[nextReelIndex][nextReelStripPosition] = { ...currentSymbol };
-                
+
                 // At high win rates, also influence nearby positions for stronger effect
                 if (this.winRate >= 80) {
                     const nearbyPositions = [
                         (nextReelStripPosition - 1 + this.reelStripLength) % this.reelStripLength,
                         (nextReelStripPosition + 1) % this.reelStripLength
                     ];
-                    
+
                     const nearbyInfluenceChance = (this.winRate - 80) / 100.0; // 0% at 80%, 20% at 100%
                     for (const pos of nearbyPositions) {
                         if (Math.random() < nearbyInfluenceChance) {
@@ -2647,7 +2972,7 @@ class SlotMachine {
                         // Multiplier ranges from ~0.1 (at low WR) to ~2.0 (at high WR before 100% override)
                         const wildMultiplier = 0.1 + winRateNormalized * 1.9;
                         if (Math.random() < this.wildRarity * wildMultiplier) {
-                             return { ...this.symbols.find(s => s.isWild) };
+                            return { ...this.symbols.find(s => s.isWild) };
                         }
                     }
                     return { ...prevSymbol }; // Return the matching symbol
@@ -2656,7 +2981,7 @@ class SlotMachine {
         }
         return this.getBasicRandomSymbol(); // Fallback to basic random symbol
     }
-    
+
     changeWinRate(value) {
         if (this.isSpinning) return;
 
@@ -2777,7 +3102,7 @@ class SlotMachine {
 
         this.showToast(`🌟 Scatter Base: ${value}% → Actual: ${actualScatterChance}% (${rarityDescription}, scaled by win rate)`, toastType, 3500);
     }
-    
+
     changeMinWinLength(value) {
         if (this.isSpinning) return;
 
@@ -2813,7 +3138,7 @@ class SlotMachine {
 
         this.balance = 100.00;
         this.betAmount = 1.00;
-        this.currentPaylineCount = this.maxPaylines; 
+        this.currentPaylineCount = this.maxPaylines;
         this.winRate = 50;
 
         this.isInFreeSpins = false;
@@ -2836,7 +3161,7 @@ class SlotMachine {
         }
         // Fallback to User Agent sniffing
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               (window.innerWidth <= 800 && window.innerHeight <= 600); // Broader check for small screens
+            (window.innerWidth <= 800 && window.innerHeight <= 600); // Broader check for small screens
     }
 
     // Initialize mobile-specific features
@@ -2857,7 +3182,7 @@ class SlotMachine {
         });
 
         window.addEventListener('orientationchange', () => {
-             clearTimeout(this.resizeTimeout); // Also clear on orientation change
+            clearTimeout(this.resizeTimeout); // Also clear on orientation change
             this.resizeTimeout = setTimeout(() => {
                 this.handleResize();
             }, 200); // Slightly longer delay for orientation to settle
@@ -2888,7 +3213,7 @@ class SlotMachine {
                 newCanvasHeight = availableHeight;
                 newCanvasWidth = newCanvasHeight * aspectRatio;
             }
-            
+
             canvas.width = Math.max(50, newCanvasWidth); // Set drawing buffer size
             canvas.height = Math.max(50, newCanvasHeight); // Set drawing buffer size
 
@@ -2906,7 +3231,7 @@ class SlotMachine {
                 e.preventDefault();
                 this.handleTouchStart();
             });
-            
+
             spinButton.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 if (!this.isSpinning) {
@@ -2931,7 +3256,7 @@ class SlotMachine {
             if (this.isTouch) {
                 const touchEndY = e.changedTouches[0].clientY;
                 const deltaY = this.touchStartY - touchEndY;
-                
+
                 // Swipe down to spin
                 if (deltaY > 50 && !this.isSpinning) {
                     this.spin();
@@ -2963,13 +3288,13 @@ class SlotMachine {
                     e.preventDefault();
                     element.classList.add('active');
                 });
-                
+
                 element.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     element.classList.remove('active');
                     control.action();
                 });
-                
+
                 element.addEventListener('touchcancel', (e) => {
                     e.preventDefault();
                     element.classList.remove('active');
@@ -2981,7 +3306,7 @@ class SlotMachine {
     // Prevent default touch behaviors
     preventDefaultTouchBehaviors() {
         // Prevent zoom on double tap
-        document.addEventListener('touchstart', function(e) {
+        document.addEventListener('touchstart', function (e) {
             if (e.touches.length > 1) {
                 e.preventDefault();
             }
@@ -2989,7 +3314,7 @@ class SlotMachine {
 
         // Prevent zoom on double tap with timeout
         let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(e) {
+        document.addEventListener('touchend', function (e) {
             const now = (new Date()).getTime();
             if (now - lastTouchEnd <= 300) {
                 e.preventDefault();
@@ -3052,11 +3377,11 @@ class SlotMachine {
     updateMobileUI() {
         const gameContainer = document.querySelector('.game-container');
         const controls = document.querySelector('.controls');
-        
+
         if (this.isMobile) {
             if (gameContainer) gameContainer.classList.add('mobile');
             if (controls) controls.classList.add('mobile');
-            
+
             // Adjust button sizes for mobile
             this.adjustButtonSizes();
         } else {
@@ -3081,22 +3406,22 @@ class SlotMachine {
         if (this.isSpinning) return;
 
         this.handleFirstInteraction();
-        
+
         if (this.gameThemes[themeKey]) {
             this.currentTheme = themeKey;
             this.symbols = this.gameThemes[themeKey].symbols;
-            
+
             // Update wild and scatter probabilities
             const wildSymbol = this.symbols.find(s => s.isWild);
             const scatterSymbol = this.symbols.find(s => s.isScatter);
             if (wildSymbol) wildSymbol.probability = this.wildRarity;
             if (scatterSymbol) scatterSymbol.probability = this.scatterRarity;
-            
+
             // Regenerate everything with new theme
             this.generateReelStrips();
             this.updateGridFromReels();
             this.draw();
-            
+
             const themeName = this.gameThemes[themeKey].name;
             this.showToast(`🎨 Theme changed to: ${themeName}`, 'info', 3000);
         }
@@ -3106,7 +3431,7 @@ class SlotMachine {
         const sidebar = document.getElementById('settingsSidebar');
         const overlay = document.getElementById('sidebarOverlay');
         const isOpen = sidebar.classList.contains('open');
-        
+
         if (isOpen) {
             sidebar.classList.remove('open');
             overlay.classList.remove('active');
@@ -3124,10 +3449,10 @@ class SlotMachine {
         overlay.classList.remove('active');
     }
 
-     // Initialize mobile detection
+    // Initialize mobile detection
     detectMobile() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               window.innerWidth <= 768;
+            window.innerWidth <= 768;
     }
 
     // Method to easily change grid size (for customization)
@@ -3150,7 +3475,7 @@ class SlotMachine {
         this.draw();
 
         this.showMessage(`📐 Grid: ${reels}x${rows} (${this.maxPaylines} lines)`, 2000);
-        this.playSound('coin'); 
+        this.playSound('coin');
     }
 }
 
@@ -3231,7 +3556,7 @@ function toggleRandomizeReels() {
 
 function setBgMusicVolume(value) {
     if (slotMachine) {
-        slotMachine.handleFirstInteraction(); 
+        slotMachine.handleFirstInteraction();
         slotMachine.setBgMusicVolume(value);
     }
 }
@@ -3250,7 +3575,7 @@ function setSfxVolume(value) {
 
 function updateSfxVolumeValue(value) {
     const sfxVolEl = document.getElementById('sfxVolumeValue');
-    if(sfxVolEl) sfxVolEl.textContent = Math.round(parseFloat(value) * 100);
+    if (sfxVolEl) sfxVolEl.textContent = Math.round(parseFloat(value) * 100);
 }
 
 window.addEventListener('load', () => {
@@ -3268,11 +3593,11 @@ window.addEventListener('load', () => {
         sfxVolumeSlider.value = slotMachine.sfxVolume;
         updateSfxVolumeValue(slotMachine.sfxVolume);
     }
-    
+
     // Add mobile-specific styles
     if (slotMachine.isMobile) {
         document.body.classList.add('mobile-device');
-        
+
         let viewport = document.querySelector('meta[name="viewport"]');
         if (!viewport) {
             viewport = document.createElement('meta');
@@ -3289,7 +3614,7 @@ window.addEventListener('load', () => {
         slotMachine.canvas.height = slotMachine.baseCanvasHeight;
         slotMachine.recalculateReelDimensions();
     }
-    
+
     slotMachine.updateMobileUI(); // Initial UI setup
     // slotMachine.handleResize(); // handleResize is now more comprehensive, let initial setup be direct
     slotMachine.draw();
