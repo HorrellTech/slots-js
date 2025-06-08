@@ -3,10 +3,10 @@ class SlotMachine {
         this.canvas = document.getElementById('slotCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.balance = 100.00; // Changed from coinCount to balance in dollars
-        this.betAmount = 0.25; // Bet amount in dollars
-        this.minBet = 0.25; // Minimum bet in dollars
-        this.maxBet = 25.00; // Maximum bet in dollars
-        this.betIncrement = 0.25; // Bet increment in dollars
+        this.betAmount = 0.02; // Bet amount in dollars
+        this.minBet = 0.02; // Minimum bet in dollars
+        this.maxBet = 5.00; // Maximum bet in dollars
+        this.betIncrement = 0.02; // Bet increment in dollars
         this.isSpinning = false;
         this.winRate = 50; // Win rate percentage (0-100)
         this.minWinLength = 3; // Minimum symbols needed for a win (configurable)
@@ -300,13 +300,59 @@ class SlotMachine {
         if (wildSymbol) wildSymbol.probability = this.wildRarity;
         if (scatterSymbol) scatterSymbol.probability = this.scatterRarity;
 
-        const totalProbability = this.symbols.reduce((sum, symbol) => sum + symbol.probability, 0);
+        let totalProbability = this.symbols.reduce((sum, symbol) => sum + (symbol.probability || 0), 0); // Ensure probability is a number
         
-        if (totalProbability !== 1.0) {
-            // Normalize all probabilities to sum to 1.0
+        if (totalProbability <= 0) {
+            console.warn("Total symbol probability is zero or negative. Attempting to re-distribute probabilities.");
+            let targetSymbolsForEqualProb = this.symbols.filter(s => s && !s.isWild && !s.isScatter && s.value > 0);
+            if (targetSymbolsForEqualProb.length === 0) {
+                targetSymbolsForEqualProb = this.symbols.filter(s => s && !s.isWild && !s.isScatter);
+            }
+            if (targetSymbolsForEqualProb.length === 0) {
+                targetSymbolsForEqualProb = this.symbols.filter(s => s && s.value > 0);
+            }
+            if (targetSymbolsForEqualProb.length === 0 && this.symbols.length > 0) {
+                targetSymbolsForEqualProb = this.symbols.filter(s => s); // Filter out any null/undefined symbols
+            }
+
+            if (targetSymbolsForEqualProb.length > 0) {
+                const equalProb = 1.0 / targetSymbolsForEqualProb.length;
+                this.symbols.forEach(s => {
+                    if (s && targetSymbolsForEqualProb.includes(s)) {
+                        s.probability = equalProb;
+                    } else if (s) {
+                        s.probability = 0; 
+                    }
+                });
+                totalProbability = targetSymbolsForEqualProb.length > 0 ? 1.0 : 0; // Should be 1.0 if targetSymbolsForEqualProb found
+            } else if (this.symbols.length > 0) {
+                 console.error("Could not assign probabilities. All symbols might be invalid or list empty after filtering.");
+                 // Last resort: if this.symbols has entries but all were filtered out (e.g. all null)
+                 // This path indicates a deeper issue with this.symbols content.
+                 // For now, to prevent NaN, if this.symbols has length, distribute.
+                 const validSymbols = this.symbols.filter(s => s);
+                 if (validSymbols.length > 0) {
+                    validSymbols.forEach(s => s.probability = 1.0 / validSymbols.length);
+                    totalProbability = 1.0;
+                 } else {
+                    totalProbability = 0; // No valid symbols
+                 }
+            } else {
+                console.error("No symbols to normalize probabilities for.");
+                return; 
+            }
+        }
+
+        if (totalProbability > 0 && totalProbability !== 1.0) {
             this.symbols.forEach(symbol => {
-                symbol.probability = symbol.probability / totalProbability;
+                if (symbol) { // Ensure symbol exists
+                    symbol.probability = (symbol.probability || 0) / totalProbability;
+                }
             });
+        } else if (totalProbability === 0 && this.symbols.length > 0) {
+            // This case should ideally be caught by the redistribution logic above.
+            // If it's reached, it means redistribution failed to establish a positive totalProbability.
+            console.error("Normalization failed: total probability is still zero after attempting redistribution.");
         }
     }
 
@@ -1289,42 +1335,75 @@ class SlotMachine {
 
     // Get basic random symbol using probabilities
     getBasicRandomSymbol() {
-        const rand = Math.random();
-        let cumulative = 0;
+        const winRateNormalized = this.winRate / 100.0;
+        let adjustedSymbolsData = [];
 
-        // Create adjusted probabilities based on win rate with more aggressive scaling
-        const adjustedSymbols = this.symbols.map(symbol => {
+        // Calculate adjusted probabilities
+        for (const symbol of this.symbols) {
             let adjustedProbability = symbol.probability;
-            
-            // Scale wild and scatter probabilities based on win rate more aggressively
+
             if (symbol.isWild) {
-                // More dramatic wild scaling: 20% at 0% win rate, 200% at 100% win rate
-                const wildMultiplier = 0.2 + (this.winRate / 100.0) * 1.8;
+                let wildMultiplier;
+                if (winRateNormalized <= 0.005) { // 0% WR
+                    wildMultiplier = 0.001; // Drastically reduce wild chance
+                } else if (winRateNormalized >= 0.995) { // 100% WR
+                    wildMultiplier = 3.0;  // Significantly increase wild chance
+                } else {
+                    // Scaled between ~0.05 (low WR) and ~2.5 (high WR)
+                    wildMultiplier = 0.05 + (winRateNormalized * 2.45);
+                }
                 adjustedProbability = this.wildRarity * wildMultiplier;
             } else if (symbol.isScatter) {
-                // More dramatic scatter scaling: 10% at 0% win rate, 250% at 100% win rate
-                const scatterMultiplier = 0.1 + (this.winRate / 100.0) * 2.4;
+                let scatterMultiplier;
+                if (winRateNormalized <= 0.005) { // 0% WR
+                    scatterMultiplier = 0.001; // Drastically reduce scatter chance
+                } else if (winRateNormalized >= 0.995) { // 100% WR
+                    scatterMultiplier = 3.5;  // Significantly increase scatter chance
+                } else {
+                    // Scaled between ~0.05 (low WR) and ~3.0 (high WR)
+                    scatterMultiplier = 0.05 + (winRateNormalized * 2.95);
+                }
                 adjustedProbability = this.scatterRarity * scatterMultiplier;
+            } else {
+                // For regular symbols, slightly adjust their probability inversely to win rate
+                // to make more room for specials at high win rates, or make them more common at low.
+                if (winRateNormalized > 0.7) {
+                    adjustedProbability *= (1.0 - (winRateNormalized - 0.7) * 0.5); // Reduce up to 15% at 100% WR
+                } else if (winRateNormalized < 0.3) {
+                    adjustedProbability *= (1.0 + (0.3 - winRateNormalized) * 0.5); // Increase up to 15% at 0% WR
+                }
             }
-            
-            return { ...symbol, adjustedProbability };
-        });
+            adjustedSymbolsData.push({ id: symbol.id, probability: Math.max(0.00001, adjustedProbability) }); // Ensure non-zero positive probability
+        }
 
-        // Normalize adjusted probabilities to sum to 1.0
-        const totalAdjustedProbability = adjustedSymbols.reduce((sum, symbol) => sum + symbol.adjustedProbability, 0);
-        
-        // Use adjusted probabilities for selection
-        for (const symbol of adjustedSymbols) {
-            const normalizedProbability = symbol.adjustedProbability / totalAdjustedProbability;
+        // Normalize adjusted probabilities
+        let totalAdjustedProbability = adjustedSymbolsData.reduce((sum, s) => sum + s.probability, 0);
+
+        if (totalAdjustedProbability <= 0) {
+            // Fallback: if all probabilities are zero (e.g. wild/scatter rarity is 0 and winrate is 0)
+            // then pick a non-special symbol randomly with equal chance.
+            const nonSpecialSymbols = this.symbols.filter(s => !s.isWild && !s.isScatter);
+            if (nonSpecialSymbols.length > 0) {
+                return { ...nonSpecialSymbols[Math.floor(Math.random() * nonSpecialSymbols.length)] };
+            }
+            return { ...this.symbols[0] }; // Absolute fallback
+        }
+
+        const rand = Math.random();
+        let cumulative = 0;
+        for (const adjSymbol of adjustedSymbolsData) {
+            const normalizedProbability = adjSymbol.probability / totalAdjustedProbability;
             cumulative += normalizedProbability;
             if (rand <= cumulative) {
-                // Return a copy of the original symbol (not the adjusted one)
-                return { ...this.symbols.find(s => s.id === symbol.id) };
+                const originalSymbol = this.symbols.find(s => s.id === adjSymbol.id);
+                return { ...originalSymbol };
             }
         }
 
-        // Fallback - return a copy of the first symbol
-        return { ...this.symbols[0] };
+        // Final fallback (should rarely be reached if logic above is sound)
+        const lastSymbolData = adjustedSymbolsData[adjustedSymbolsData.length - 1];
+        const fallbackSymbol = lastSymbolData ? this.symbols.find(s => s.id === lastSymbolData.id) : this.symbols[0];
+        return { ...fallbackSymbol };
     }
 
     // Get weighted random symbol from a subset
@@ -1972,54 +2051,71 @@ class SlotMachine {
         let totalWin = 0;
         let totalWildsUsed = 0;
         this.activePaylines = [];
-
-        if (this.currentPaylineCount === 0 && !this.isInFreeSpins) { // Allow 0 paylines for free spins
-            this.showToast("ℹ️ No paylines active - no wins possible", 'info', 2000);
-            // return; // Don't return if in free spins, as scatter check is important
-        }
-
-        const scatterCount = this.countScatterSymbols();
         let newFreeSpinsAwardedThisCheck = 0;
+        let scatterPayout = 0;
+
+        const totalBetStaked = this.betAmount * this.currentPaylineCount;
+
+        // Scatter symbol check
+        const scatterCount = this.countScatterSymbols();
+
+        if (scatterCount >= 2) {
+            scatterPayout = scatterCount * totalBetStaked;
+            if (this.isInFreeSpins && scatterPayout > 0) { // Apply multiplier to scatter payout in free spins
+                scatterPayout = Math.round(scatterPayout * this.freeSpinMultiplier);
+            }
+            // totalWin += scatterPayout; // Add to totalWin later to handle sound logic better
+        }
 
         if (scatterCount >= this.scatterThreshold) {
             newFreeSpinsAwardedThisCheck = this.baseFreeSpins;
             if (scatterCount > this.scatterThreshold) {
                 const extraScatters = scatterCount - this.scatterThreshold;
-                newFreeSpinsAwardedThisCheck += extraScatters * this.baseFreeSpins; // Award more for more scatters
+                newFreeSpinsAwardedThisCheck += extraScatters * (this.baseFreeSpins / 2); // More scatters, more spins (e.g., 5 extra per scatter over threshold)
             }
 
-            if (!this.isInFreeSpins) { // If this is the *start* of a new free spins session
+            if (!this.isInFreeSpins) {
                 this.currentFreeSpinNumber = 0;
                 this.totalFreeSpinsAwarded = 0;
             }
             
             this.isInFreeSpins = true;
             this.freeSpinsCount += newFreeSpinsAwardedThisCheck;
-            this.totalFreeSpinsAwarded += newFreeSpinsAwardedThisCheck; // Add to the total for this session
+            this.totalFreeSpinsAwarded += newFreeSpinsAwardedThisCheck;
 
-            this.playSound('slotFeature'); // Play feature sound for scatters
+            this.playSound('slotFeature');
 
-            let scatterMessage = `🌟 <strong>SCATTER BONUS!</strong><br/>`;
-            if (this.totalFreeSpinsAwarded > newFreeSpinsAwardedThisCheck) { // Indicates it's a re-trigger
-                 scatterMessage += `RE-TRIGGER! +${newFreeSpinsAwardedThisCheck} Free Spins!<br/>`;
-            } else {
-                 scatterMessage += `${scatterCount} Scatters = ${newFreeSpinsAwardedThisCheck} Free Spins!<br/>`;
+            let scatterFeatureMessage = `🌟 <strong>SCATTER BONUS!</strong><br/>`;
+            if (scatterPayout > 0) {
+                scatterFeatureMessage += `${scatterCount} Scatters pay ${this.formatCurrency(scatterPayout)}!<br/>`;
             }
-            scatterMessage += `Total Free Spins: ${this.freeSpinsCount}`;
-            this.showToast(scatterMessage, 'warning', 6000);
+            if (this.totalFreeSpinsAwarded > newFreeSpinsAwardedThisCheck && this.isInFreeSpins && newFreeSpinsAwardedThisCheck > 0) {
+                 scatterFeatureMessage += `RE-TRIGGER! +${newFreeSpinsAwardedThisCheck} Free Spins!<br/>`;
+            } else if (newFreeSpinsAwardedThisCheck > 0) {
+                 scatterFeatureMessage += `${newFreeSpinsAwardedThisCheck} Free Spins Awarded!<br/>`;
+            }
+            scatterFeatureMessage += `Total Free Spins: ${this.freeSpinsCount}`;
+            this.showToast(scatterFeatureMessage, 'warning', 6000);
+        } else if (scatterPayout > 0) { // Payout for 2 scatters (or more, if threshold is >2 and not met for FS)
+            this.showToast(`🌟 ${scatterCount} Scatters pay ${this.formatCurrency(scatterPayout)}!`, 'win', 4000);
+        }
+        
+        if (scatterPayout > 0) {
+            totalWin += scatterPayout;
         }
 
-        // Check payline wins only if paylines are active or if it's a free spin (wins can still occur)
-        if (this.currentPaylineCount > 0 || this.isInFreeSpins) {
+        // Check payline wins
+        if (this.currentPaylineCount > 0 || (this.isInFreeSpins && totalBetStaked > 0)) { // Allow payline wins in FS even if lines were 0
             for (let i = 0; i < this.currentPaylineCount && i < this.paylines.length; i++) {
                 const payline = this.paylines[i];
                 let lineResult = this.checkPayline(payline);
 
                 if (lineResult.payout > 0) {
+                    let PayoutOnLine = lineResult.payout;
                     if (this.isInFreeSpins) {
-                        lineResult.payout = Math.round(lineResult.payout * this.freeSpinMultiplier);
+                        PayoutOnLine = Math.round(PayoutOnLine * this.freeSpinMultiplier);
                     }
-                    totalWin += lineResult.payout;
+                    totalWin += PayoutOnLine; // Add to totalWin (scatterPayout might already be there)
                     totalWildsUsed += lineResult.wildsUsed;
                     this.activePaylines.push(payline);
                 }
@@ -2028,30 +2124,56 @@ class SlotMachine {
 
 
         if (totalWin > 0) {
-            this.balance += totalWin;
+            this.balance += totalWin; // Balance was already reduced by bet, or not if free spin
             this.playSound('coin'); 
 
-            const winThreshold = this.betAmount * this.currentPaylineCount * 10; 
-            // Play big win sound if it's a big win and not primarily a scatter feature trigger sound
-            if (totalWin >= winThreshold && newFreeSpinsAwardedThisCheck === 0) { 
-                this.playSound('winBig');
-            } else if (newFreeSpinsAwardedThisCheck === 0) { // Play small win if no scatters triggered this check
-                this.playSound('winSmall');
+            const winThreshold = totalBetStaked * 10; 
+            let playedWinSound = false;
+
+            if (newFreeSpinsAwardedThisCheck > 0) {
+                // slotFeature sound is primary for free spin triggers
+                playedWinSound = true;
             }
 
-            let message = `🎉 <strong>WIN!</strong><br/>+${this.formatCurrency(totalWin)} on ${this.activePaylines.length} line(s)!`;
+            const lineWinAmount = totalWin - scatterPayout; // Calculate win from lines specifically
+
+            if (totalWin >= winThreshold && !playedWinSound) { // Big overall win
+                this.playSound('winBig');
+                playedWinSound = true;
+            } else if (totalWin > 0 && !playedWinSound) { // Any other win
+                this.playSound('winSmall');
+                playedWinSound = true;
+            }
+
+
+            let message = `🎉 <strong>WIN!</strong><br/>+${this.formatCurrency(totalWin)}`;
+            let details = [];
+            if (this.activePaylines.length > 0) {
+                 details.push(`on ${this.activePaylines.length} line(s)`);
+            }
+            if (scatterPayout > 0 && lineWinAmount > 0) { // Both line wins and scatter pay
+                details.push(`(incl. ${this.formatCurrency(scatterPayout)} from scatters)`);
+            } else if (scatterPayout > 0 && lineWinAmount <= 0) { // Only scatter pay
+                details.push(`(from ${scatterCount} scatters)`);
+            }
+            if (details.length > 0) {
+                message += " " + details.join(" ");
+            }
+            message += `!`;
+            
             if (totalWildsUsed > 0) {
                 message += `<br/>🃏 ${totalWildsUsed} Wild${totalWildsUsed > 1 ? 's' : ''} helped!`;
             }
-            if (this.isInFreeSpins) {
+            if (this.isInFreeSpins && (lineWinAmount > 0 || scatterPayout > 0)) { // Check if the win happened during FS
                 message += `<br/>💰 x${this.freeSpinMultiplier} Free Spin Multiplier!`;
             }
-            if (totalWin >= 100) { 
-                message += '<br/>💎 JACKPOT TERRITORY! 💎';
+            if (totalWin >= 100 && totalBetStaked > 0 && totalWin / totalBetStaked >= 50) { 
+                message += '<br/>💎 MEGA WIN! 💎';
+            } else if (totalWin >= 50 && totalBetStaked > 0 && totalWin / totalBetStaked >= 25) {
+                message += '<br/>💰 BIG WIN! 💰';
             }
 
             this.showToast(message, 'win', 5000);
-            // this.updateDisplay(); // updateDisplay is called at the end of animate()
             this.animateWin();
         } else if (newFreeSpinsAwardedThisCheck === 0) { // No regular win AND no new free spins awarded in this check
             if (this.isInFreeSpins) { // If it was a free spin that resulted in no win
@@ -2133,108 +2255,105 @@ class SlotMachine {
             return bestMatch;
         }
 
-        // Get the first symbol (leftmost reel) - this determines what we're matching
         const firstSymbol = validSymbols[0];
         
-        // If first symbol is wild, we need to determine what it represents
         if (firstSymbol.isWild) {
-            // Look ahead to find the first non-wild symbol to determine the match type
             let targetSymbol = null;
+            // Try to find the first non-wild, non-scatter symbol on the line to determine what the wild substitutes for
             for (let i = 1; i < validSymbols.length; i++) {
-                if (!validSymbols[i].isWild && !validSymbols[i].isScatter) {
+                if (validSymbols[i] && !validSymbols[i].isWild && !validSymbols[i].isScatter) {
                     targetSymbol = validSymbols[i];
                     break;
                 }
             }
             
-            // If no non-wild symbol found, treat as highest value symbol match
+            // If no such symbol is found on the line (e.g., line is W,W,W or W,W,Scatter),
+            // wild should substitute for the highest paying regular symbol in the game.
             if (!targetSymbol) {
-                targetSymbol = this.symbols
-                    .filter(s => !s.isWild && !s.isScatter)
-                    .reduce((max, symbol) => symbol.value > max.value ? symbol : max);
-            }
-            
-            // Count consecutive matches from left with this target
-            let count = 0;
-            let wildsUsed = 0;
-            
-            for (let i = 0; i < validSymbols.length; i++) {
-                if (validSymbols[i].id === targetSymbol.id) {
-                    count++;
-                } else if (validSymbols[i].isWild) {
-                    count++;
-                    wildsUsed++;
+                const highestValueRegularSymbols = this.symbols // from the main game symbols list
+                    .filter(s => s && !s.isWild && !s.isScatter && s.value > 0)
+                    .sort((a, b) => b.value - a.value);
+                
+                if (highestValueRegularSymbols.length > 0) {
+                    targetSymbol = highestValueRegularSymbols[0];
                 } else {
-                    // Stop at first non-matching symbol
-                    break;
+                    // If there are no regular paying symbols in the game (config error),
+                    // a line of wilds cannot determine a value.
+                    console.warn("No regular paying symbol found for wild substitution. Line of wilds cannot determine payout value.");
+                    return bestMatch; // Cannot determine a symbol to pay for
                 }
             }
             
-            bestMatch = { count, symbol: targetSymbol, wildsUsed };
-        }
-        // If first symbol is scatter, no regular wins (scatters don't form paylines)
-        else if (firstSymbol.isScatter) {
-            return bestMatch; // No win for scatter symbols on paylines
-        }
-        // First symbol is a regular symbol
-        else {
             let count = 0;
-            let wildsUsed = 0;
+            let wildsUsedOnThisLine = 0; 
             
-            // Count consecutive matches from left
             for (let i = 0; i < validSymbols.length; i++) {
-                if (validSymbols[i].id === firstSymbol.id) {
+                // A position matches if it's the targetSymbol or if it's a Wild
+                if (validSymbols[i] && targetSymbol && validSymbols[i].id === targetSymbol.id) {
                     count++;
-                } else if (validSymbols[i].isWild) {
+                } else if (validSymbols[i] && validSymbols[i].isWild) {
                     count++;
-                    wildsUsed++;
+                    wildsUsedOnThisLine++;
                 } else {
-                    // Stop at first non-matching symbol
+                    // Stop at the first symbol that is neither the target nor a Wild
                     break;
                 }
             }
-            
-            bestMatch = { count, symbol: firstSymbol, wildsUsed };
-        }
+            bestMatch = { count, symbol: targetSymbol, wildsUsed: wildsUsedOnThisLine };
 
+        } else if (firstSymbol.isScatter) {
+            // Scatters do not form payline wins in this model; they are handled separately.
+            return bestMatch; 
+        } else { // First symbol is a regular, non-wild, non-scatter symbol
+            let count = 0;
+            let wildsUsedOnThisLine = 0;
+            const targetSymbol = firstSymbol; // The symbol we are matching
+            
+            for (let i = 0; i < validSymbols.length; i++) {
+                if (validSymbols[i] && targetSymbol && validSymbols[i].id === targetSymbol.id) {
+                    count++;
+                } else if (validSymbols[i] && validSymbols[i].isWild) {
+                    count++;
+                    wildsUsedOnThisLine++;
+                } else {
+                    break;
+                }
+            }
+            bestMatch = { count, symbol: targetSymbol, wildsUsed: wildsUsedOnThisLine };
+        }
         return bestMatch;
     }
     
     checkPayline(payline) {
         const symbols = [];
 
-        // During initialization, grid may not be fully built yet
         if (!this.grid || this.grid.length === 0) {
             return { payout: 0, wildsUsed: 0 };
         }
 
-        // Get symbols along the payline with bounds checking
         for (const pos of payline.positions) {
-            // Add bounds checking to prevent grid access errors
             if (pos.row >= 0 && pos.row < this.config.rows &&
                 pos.reel >= 0 && pos.reel < this.config.reels &&
                 this.grid[pos.row] && this.grid[pos.row][pos.reel]) {
                 symbols.push(this.grid[pos.row][pos.reel]);
             } else {
-                // Invalid position or incomplete grid - payline goes out of bounds
                 return { payout: 0, wildsUsed: 0 };
             }
         }
 
         if (symbols.length < this.minWinLength) return { payout: 0, wildsUsed: 0 };
 
-        // Enhanced matching with wild substitution - MUST START FROM LEFT
         const bestMatch = this.findBestMatchFromLeft(symbols);
 
-        // Only pay out if we have enough consecutive matching symbols starting from the leftmost reel
-        if (bestMatch.count >= this.minWinLength && bestMatch.symbol && bestMatch.symbol.value > 0) {
-            // Calculate payout with more generous multipliers
+        // Ensure a valid symbol was matched, it has a value, and the count meets minWinLength
+        if (bestMatch.symbol && bestMatch.symbol.value > 0 && bestMatch.count >= this.minWinLength) {
             let multiplier = 1;
             if (bestMatch.count === 4) multiplier = 3;
             else if (bestMatch.count === 5) multiplier = 5;
-            else if (bestMatch.count === 6) multiplier = 8; // For 6-reel grids
+            else if (bestMatch.count >= 6) multiplier = 8; // For 6+ reel grids (cap at 5 for 5-reel)
+            
+            if (this.config.reels === 5 && bestMatch.count > 5) bestMatch.count = 5; // Cap for multiplier calc if grid is 5 reels
 
-            // Wild bonus: if wilds helped create the win, add 50% bonus
             if (bestMatch.wildsUsed > 0) {
                 multiplier *= 1.5;
             }
@@ -2246,7 +2365,7 @@ class SlotMachine {
 
         return { payout: 0, wildsUsed: 0 };
     }
-
+    
     animateWin() {
         // Flash winning paylines
         let flashCount = 0;
@@ -2437,47 +2556,50 @@ class SlotMachine {
     }
 
     getSymbolWithHorizontalInfluence(reelIndex, stripPosition) {
-        // Only apply horizontal influence if win rate > 0 and we have a previous reel
         if (this.winRate > 0 && reelIndex > 0 && this.reelStrips[reelIndex - 1]) {
             const prevReelStrip = this.reelStrips[reelIndex - 1];
-            
-            // Look at the corresponding position in the previous reel
-            const prevSymbol = prevReelStrip[stripPosition % prevReelStrip.length];
-            
-            // If previous symbol exists and isn't wild/scatter, consider matching it
+            // Ensure stripPosition is valid for prevReelStrip
+            const safePrevStripPosition = stripPosition % prevReelStrip.length;
+            const prevSymbol = prevReelStrip[safePrevStripPosition];
+
             if (prevSymbol && !prevSymbol.isWild && !prevSymbol.isScatter) {
-                // More aggressive win rate scaling
+                const winRateNormalized = this.winRate / 100.0;
                 let matchChance;
-                if (this.winRate === 0) {
-                    matchChance = 0.01; // 1% at 0%
-                } else if (this.winRate === 100) {
-                    matchChance = 0.85; // 85% at 100%
-                } else {
-                    // Exponential scaling for more dramatic effect
-                    const winRateNormalized = this.winRate / 100.0;
-                    matchChance = Math.pow(winRateNormalized, 0.8) * 0.84 + 0.01;
-                }
-                
-                const shouldMatch = Math.random() < matchChance;
-                
-                if (shouldMatch) {
-                    // Higher win rate = higher chance of wild or matching symbol
-                    const wildChance = this.wildRarity * (0.3 + (this.winRate / 100.0) * 1.2);
-                    const shouldBeWild = Math.random() < wildChance;
-                    
-                    if (shouldBeWild) {
-                        // Return a wild symbol
-                        return { ...this.symbols.find(s => s.isWild) };
-                    } else {
-                        // Return matching symbol
-                        return { ...prevSymbol };
+                let forceWildAtHighRate = false;
+
+                if (winRateNormalized <= 0.005) { // Effectively 0% win rate
+                    matchChance = 0.0001; // Extremely low chance to match prevSymbol
+                } else if (winRateNormalized >= 0.995) { // Effectively 100% win rate
+                    matchChance = 0.9999; // Extremely high chance to match
+                    // At 100% win rate, make it very likely to be a wild if a match occurs
+                    if (Math.random() < (this.wildRarity + 0.1) * 2.5) { // Increased chance for wild
+                        forceWildAtHighRate = true;
                     }
+                } else {
+                    // Power curve for intermediate rates
+                    matchChance = Math.pow(winRateNormalized, 2.0) * 0.80 + (0.10 * winRateNormalized);
+                    matchChance = Math.max(0.001, Math.min(0.98, matchChance)); // Clamp intermediate values
+                }
+
+                if (Math.random() < matchChance) {
+                    if (forceWildAtHighRate) {
+                        return { ...this.symbols.find(s => s.isWild) };
+                    }
+                    // For non-extreme win rates, calculate wild chance
+                    // Only allow wilds to appear via this matching mechanism if winRate is not effectively zero
+                    if (winRateNormalized > 0.01) {
+                        // Wilds are more likely with higher win rates, less with lower.
+                        // Multiplier ranges from ~0.1 (at low WR) to ~2.0 (at high WR before 100% override)
+                        const wildMultiplier = 0.1 + winRateNormalized * 1.9;
+                        if (Math.random() < this.wildRarity * wildMultiplier) {
+                             return { ...this.symbols.find(s => s.isWild) };
+                        }
+                    }
+                    return { ...prevSymbol }; // Return the matching symbol
                 }
             }
         }
-        
-        // Default to random symbol
-        return this.getBasicRandomSymbol();
+        return this.getBasicRandomSymbol(); // Fallback to basic random symbol
     }
     
     changeWinRate(value) {
@@ -2486,44 +2608,31 @@ class SlotMachine {
         this.winRate = parseInt(value);
         this.updateDisplay();
 
-        // Regenerate reel strips to apply new win rate immediately
         this.generateReelStrips();
         this.updateGridFromReels();
         this.draw();
 
-        // Calculate wild and scatter multipliers for display with new aggressive scaling
-        const wildMultiplier = 0.2 + (this.winRate / 100.0) * 1.8;
-        const scatterMultiplier = 0.1 + (this.winRate / 100.0) * 2.4;
-
-        let message = `🎰 Win Rate: ${this.winRate}%`;
-        let description = "";
+        let qualitativeDescription = "";
         let toastType = 'info';
 
-        if (this.winRate === 0) {
-            description = ` - Almost no wins, 20% wild chance, 10% scatter chance`;
+        if (this.winRate <= 10) {
+            qualitativeDescription = "Very Low Win Chance";
             toastType = 'error';
-        } else if (this.winRate <= 20) {
-            description = ` - Very rare wins, ${Math.round(wildMultiplier * 100)}% wild chance, ${Math.round(scatterMultiplier * 100)}% scatter chance`;
-            toastType = 'error';
-        } else if (this.winRate <= 40) {
-            description = ` - Occasional wins, ${Math.round(wildMultiplier * 100)}% wild chance, ${Math.round(scatterMultiplier * 100)}% scatter chance`;
+        } else if (this.winRate <= 30) {
+            qualitativeDescription = "Low Win Chance";
             toastType = 'warning';
-        } else if (this.winRate <= 60) {
-            description = ` - Balanced wins, ${Math.round(wildMultiplier * 100)}% wild chance, ${Math.round(scatterMultiplier * 100)}% scatter chance`;
+        } else if (this.winRate <= 70) {
+            qualitativeDescription = "Medium Win Chance";
             toastType = 'info';
-        } else if (this.winRate <= 80) {
-            description = ` - Frequent wins, ${Math.round(wildMultiplier * 100)}% wild chance, ${Math.round(scatterMultiplier * 100)}% scatter chance`;
-            toastType = 'warning';
-        } else if (this.winRate < 100) {
-            description = ` - Very frequent wins, ${Math.round(wildMultiplier * 100)}% wild chance, ${Math.round(scatterMultiplier * 100)}% scatter chance`;
+        } else if (this.winRate <= 90) {
+            qualitativeDescription = "High Win Chance";
             toastType = 'win';
         } else {
-            description = ` - Almost guaranteed wins, 200% wild chance, 250% scatter chance`;
+            qualitativeDescription = "Very High Win Chance";
             toastType = 'win';
         }
 
-        message += description;
-        this.showToast(message, toastType, 4000);
+        this.showToast(`🎰 Win Rate: ${this.winRate}% (${qualitativeDescription})`, toastType, 3500);
     }
 
     changeWildRarity(value) {
