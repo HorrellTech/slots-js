@@ -25,6 +25,12 @@ class SlotMachine {
         // Mobile detection
         this.isMobile = this.detectMobile();
 
+        // Canvas base dimensions for aspect ratio scaling in fullscreen
+        this.baseCanvasWidth = 600;
+        this.baseCanvasHeight = 400;
+        // Approximate space for UI elements in fullscreen (top, bottom, left, right)
+        this.fullscreenPadding = { top: 70, bottom: 80, left: 10, right: 10 };
+
         // New reel mechanics variables
         this.spinSpeed = 16; // Base spin speed (adjustable)
         this.randomizeReelOnSpin = false; // Set to true for random reels each spin, false for physical slot behavior
@@ -437,41 +443,123 @@ class SlotMachine {
     // Toggle fullscreen mode
     toggleFullscreen() {
         this.handleFirstInteraction();
-
         this.isFullscreen = !this.isFullscreen;
+
+        const gameContainer = document.querySelector('.game-container');
 
         if (this.isFullscreen) {
             document.body.classList.add('fullscreen-mode');
-            
-            if (this.isMobile) {
-                // Mobile fullscreen
-                this.canvas.width = window.innerWidth - 10;
-                this.canvas.height = window.innerHeight - 180; // More space for controls
-                
-                // Hide address bar on mobile
-                setTimeout(() => {
-                    window.scrollTo(0, 1);
-                }, 100);
+            if (gameContainer) gameContainer.classList.add('fullscreen-active'); // Custom class for game container styling if needed
+
+            // Attempt to use browser's fullscreen API for a more immersive experience
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    // Fallback to CSS-only fullscreen if API fails or is not supported
+                    this.resizeCanvasForFullscreen();
+                });
+            } else if (document.documentElement.mozRequestFullScreen) { /* Firefox */
+                document.documentElement.mozRequestFullScreen();
+            } else if (document.documentElement.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) { /* IE/Edge */
+                document.documentElement.msRequestFullscreen();
             } else {
-                // Desktop fullscreen
-                this.canvas.width = window.innerWidth - 40;
-                this.canvas.height = window.innerHeight - 250; // More space for controls
+                 // Fallback for browsers that don't support Fullscreen API
+                this.resizeCanvasForFullscreen();
             }
+            // Listen for fullscreen changes to call resizeCanvasForFullscreen
+            document.addEventListener('fullscreenchange', this.handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', this.handleFullscreenChange);
+            document.addEventListener('mozfullscreenchange', this.handleFullscreenChange);
+            document.addEventListener('MSFullscreenChange', this.handleFullscreenChange);
+
         } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(err => {
+                     console.warn(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else if (document.mozCancelFullScreen) { /* Firefox */
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE/Edge */
+                document.msExitFullscreen();
+            }
+            // Fallback or if already exited via API, ensure CSS classes are removed
             document.body.classList.remove('fullscreen-mode');
+            if (gameContainer) gameContainer.classList.remove('fullscreen-active');
             
+            // Remove listeners when exiting fullscreen
+            document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', this.handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', this.handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', this.handleFullscreenChange);
+
             if (this.isMobile) {
                 this.adjustCanvasForMobile();
             } else {
-                this.canvas.width = 600;
-                this.canvas.height = 400;
+                this.canvas.width = this.baseCanvasWidth;
+                this.canvas.height = this.baseCanvasHeight;
             }
+            this.recalculateReelDimensions();
+            this.draw();
+        }
+        this.updateFullscreenButton();
+        this.updateMobileUI(); // Ensure UI updates correctly
+    }
+
+    resizeCanvasForFullscreen() {
+        let availableWidth = window.innerWidth - this.fullscreenPadding.left - this.fullscreenPadding.right;
+        let availableHeight = window.innerHeight - this.fullscreenPadding.top - this.fullscreenPadding.bottom;
+        
+        // Special consideration for mobile landscape where bottom controls might take more relative height
+        if (this.isMobile && window.innerWidth > window.innerHeight) { // Mobile landscape
+            availableHeight = window.innerHeight - this.fullscreenPadding.top - (this.fullscreenPadding.bottom * 0.8); // Reduce bottom padding impact
         }
 
+
+        const aspectRatio = this.baseCanvasWidth / this.baseCanvasHeight;
+
+        let newCanvasWidth = availableWidth;
+        let newCanvasHeight = newCanvasWidth / aspectRatio;
+
+        if (newCanvasHeight > availableHeight) {
+            newCanvasHeight = availableHeight;
+            newCanvasWidth = newCanvasHeight * aspectRatio;
+        }
+
+        this.canvas.width = Math.max(50, newCanvasWidth); // Ensure a minimum size
+        this.canvas.height = Math.max(50, newCanvasHeight);
+
+        this.recalculateReelDimensions();
+        this.draw();
+    }
+
+    recalculateReelDimensions() {
         this.reelWidth = (this.canvas.width - (this.config.reels - 1) * this.config.spacing) / this.config.reels;
         this.rowHeight = (this.canvas.height - (this.config.rows - 1) * this.config.spacing) / this.config.rows;
+    }
 
-        this.draw();
+    handleFullscreenChange = () => { // Use arrow function to bind 'this'
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            // Entered browser fullscreen
+            this.isFullscreen = true; // Ensure state is correct
+            document.body.classList.add('fullscreen-mode');
+            this.resizeCanvasForFullscreen();
+        } else {
+            // Exited browser fullscreen
+            this.isFullscreen = false; // Ensure state is correct
+            document.body.classList.remove('fullscreen-mode');
+            if (this.isMobile) {
+                this.adjustCanvasForMobile();
+            } else {
+                this.canvas.width = this.baseCanvasWidth;
+                this.canvas.height = this.baseCanvasHeight;
+            }
+            this.recalculateReelDimensions();
+            this.draw();
+        }
         this.updateFullscreenButton();
         this.updateMobileUI();
     }
@@ -2447,61 +2535,66 @@ class SlotMachine {
 
     // Add mobile detection method
     detectMobile() {
+        // Prefer window.matchMedia for modern mobile detection if available
+        if (window.matchMedia("(pointer: coarse)").matches && window.matchMedia("(hover: none)").matches) {
+            return true;
+        }
+        // Fallback to User Agent sniffing
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               window.innerWidth <= 768;
+               (window.innerWidth <= 800 && window.innerHeight <= 600); // Broader check for small screens
     }
 
     // Initialize mobile-specific features
     initializeMobileSupport() {
         if (this.isMobile) {
-            // Adjust canvas size for mobile
-            this.adjustCanvasForMobile();
-            
-            // Add touch event listeners
+            this.adjustCanvasForMobile(); // Initial adjustment for non-fullscreen
             this.addTouchListeners();
-            
-            // Prevent default touch behaviors
-            this.preventDefaultTouchBehaviors();
+            // preventDefaultTouchBehaviors can be aggressive, ensure it's needed or test thoroughly
+            // this.preventDefaultTouchBehaviors(); 
         }
 
-        // Add window resize listener for orientation changes
         window.addEventListener('resize', () => {
-            setTimeout(() => {
+            // Debounce resize event
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = setTimeout(() => {
                 this.handleResize();
-            }, 100);
+            }, 150);
         });
 
-        // Add orientation change listener
         window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
+             clearTimeout(this.resizeTimeout); // Also clear on orientation change
+            this.resizeTimeout = setTimeout(() => {
                 this.handleResize();
-            }, 500);
+            }, 200); // Slightly longer delay for orientation to settle
         });
     }
 
     // Adjust canvas size for mobile devices
-    adjustCanvasForMobile() {
+    adjustCanvasForMobile() { // For NON-FULLSCREEN mobile
         const canvas = this.canvas;
-        const container = canvas.parentElement;
-        
         if (this.isMobile && !this.isFullscreen) {
-            // Mobile portrait mode
-            if (window.innerHeight > window.innerWidth) {
-                canvas.width = Math.min(window.innerWidth - 20, 380);
-                canvas.height = Math.min(window.innerHeight * 0.4, 300);
-            } 
-            // Mobile landscape mode
-            else {
-                canvas.width = Math.min(window.innerWidth - 40, 500);
-                canvas.height = Math.min(window.innerHeight - 180, 250);
-            }
-        }
+            const aspectRatio = this.baseCanvasWidth / this.baseCanvasHeight;
+            let availableWidth = window.innerWidth - 20; // Small padding
+            let availableHeight = window.innerHeight * 0.45; // Max 45% of viewport height for canvas
 
-        // Recalculate dimensions
-        this.reelWidth = (canvas.width - (this.config.reels - 1) * this.config.spacing) / this.config.reels;
-        this.rowHeight = (canvas.height - (this.config.rows - 1) * this.config.spacing) / this.config.rows;
-        
-        this.draw();
+            // Cap max dimensions for non-fullscreen mobile
+            availableWidth = Math.min(availableWidth, 420);
+            availableHeight = Math.min(availableHeight, 320);
+
+            let newCanvasWidth = availableWidth;
+            let newCanvasHeight = newCanvasWidth / aspectRatio;
+
+            if (newCanvasHeight > availableHeight) {
+                newCanvasHeight = availableHeight;
+                newCanvasWidth = newCanvasHeight * aspectRatio;
+            }
+            
+            canvas.width = Math.max(50, newCanvasWidth);
+            canvas.height = Math.max(50, newCanvasHeight);
+
+            this.recalculateReelDimensions();
+            this.draw();
+        }
     }
 
     // Add touch event listeners
@@ -2628,21 +2721,26 @@ class SlotMachine {
 
     // Handle window resize and orientation changes
     handleResize() {
+        const wasMobile = this.isMobile;
         this.isMobile = this.detectMobile();
-        
-        if (!this.isFullscreen) {
-            this.adjustCanvasForMobile();
-        } else {
-            // Adjust fullscreen for mobile
-            this.canvas.width = window.innerWidth - 20;
-            this.canvas.height = window.innerHeight - 120;
-            
-            this.reelWidth = (this.canvas.width - (this.config.reels - 1) * this.config.spacing) / this.config.reels;
-            this.rowHeight = (this.canvas.height - (this.config.rows - 1) * this.config.spacing) / this.config.rows;
+
+        if (wasMobile !== this.isMobile) {
+            this.updateMobileUI(); // Update if mobile state changed
         }
-        
-        this.draw();
-        this.updateMobileUI();
+
+        if (this.isFullscreen) {
+            this.resizeCanvasForFullscreen();
+        } else {
+            if (this.isMobile) {
+                this.adjustCanvasForMobile();
+            } else {
+                // Desktop non-fullscreen
+                this.canvas.width = this.baseCanvasWidth;
+                this.canvas.height = this.baseCanvasHeight;
+                this.recalculateReelDimensions();
+                this.draw();
+            }
+        }
     }
 
     // Update UI elements for mobile
@@ -2814,14 +2912,6 @@ function addCoins(amount) {
     slotMachine.showToast(`💰 +${slotMachine.formatCurrency(amount)} added!`, 'win', 2000);
 }
 
-function changeSpinSpeed(value) {
-    slotMachine.changeSpinSpeed(value);
-}
-
-function toggleRandomizeReels() {
-    slotMachine.toggleRandomizeReels();
-}
-
 function changeScatterRarity(value) {
     slotMachine.changeScatterRarity(value);
 }
@@ -2878,12 +2968,16 @@ window.addEventListener('load', () => {
     if (slotMachine.isMobile) {
         document.body.classList.add('mobile-device');
         
-        // Add viewport meta tag if not present
-        if (!document.querySelector('meta[name="viewport"]')) {
-            const viewport = document.createElement('meta');
+        // Ensure viewport meta tag is optimal (or advise user to add it in HTML)
+        let viewport = document.querySelector('meta[name="viewport"]');
+        if (!viewport) {
+            viewport = document.createElement('meta');
             viewport.name = 'viewport';
-            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
             document.head.appendChild(viewport);
         }
+        // Set more restrictive content for game-like experience
+        viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
     }
+    slotMachine.updateMobileUI(); // Initial UI setup
+    slotMachine.handleResize(); // Initial resize to set canvas correctly
 });

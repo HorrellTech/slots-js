@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Basic Slot Machine Game (WACKY WILDS AND FREE SPINS!!!!)</title>
     <link rel="stylesheet" href="styles.css">
 
@@ -15,28 +15,31 @@
 
     <div class="game-container">
         <h1>🎰 Basic Slot Machine Game 🎰</h1>
-        <div class="theme-controls">
-            <label for="themeSelector">Game Theme:</label>
-            <select id="themeSelector" onchange="changeGameTheme(this.value)">
-                <option value="classic">🍒 Classic Fruits</option>
-                <option value="ocean">🌊 Ocean Adventure</option>
-                <option value="space">🚀 Space Explorer</option>
-                <option value="animals">🦁 Wild Animals</option>
-                <option value="food">🍕 Delicious Treats</option>
-                <option value="gems">💎 Precious Gems</option>
-            </select>
-        </div>
 
-        <div class="volume-controls">
-            <div>
-                <label for="bgVolumeSlider">BG Music: <span id="bgVolumeValue">30</span>%</label>
-                <input type="range" id="bgVolumeSlider" min="0" max="1" step="0.01"
-                    onchange="setBgMusicVolume(this.value)" oninput="updateBgVolumeValue(this.value)">
+        <div class="settings-panel">
+            <div class="theme-controls">
+                <label for="themeSelector">Game Theme:</label>
+                <select id="themeSelector" onchange="changeGameTheme(this.value)">
+                    <option value="classic">🍒 Classic Fruits</option>
+                    <option value="ocean">🌊 Ocean Adventure</option>
+                    <option value="space">🚀 Space Explorer</option>
+                    <option value="animals">🦁 Wild Animals</option>
+                    <option value="food">🍕 Delicious Treats</option>
+                    <option value="gems">💎 Precious Gems</option>
+                </select>
             </div>
-            <div>
-                <label for="sfxVolumeSlider">Sound FX: <span id="sfxVolumeValue">60</span>%</label>
-                <input type="range" id="sfxVolumeSlider" min="0" max="1" step="0.01" onchange="setSfxVolume(this.value)"
-                    oninput="updateSfxVolumeValue(this.value)">
+
+            <div class="volume-controls">
+                <div>
+                    <label for="bgVolumeSlider">BG Music: <span id="bgVolumeValue">30</span>%</label>
+                    <input type="range" id="bgVolumeSlider" min="0" max="1" step="0.01"
+                        onchange="setBgMusicVolume(this.value)" oninput="updateBgVolumeValue(this.value)">
+                </div>
+                <div>
+                    <label for="sfxVolumeSlider">Sound FX: <span id="sfxVolumeValue">60</span>%</label>
+                    <input type="range" id="sfxVolumeSlider" min="0" max="1" step="0.01" onchange="setSfxVolume(this.value)"
+                        oninput="updateSfxVolumeValue(this.value)">
+                </div>
             </div>
         </div>
 
