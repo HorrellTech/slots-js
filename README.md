@@ -2,6 +2,10 @@
 
 A beautiful, feature-rich slot machine game with multiple paylines, configurable grid sizes, and smooth animations built with HTML5 Canvas and JavaScript.
 
+Wanted to create a slot machine with adjustable win rates etc, so I can gain better understanding of how they may work. Next step is adding a checker that calculates how much spent vs how much won, and adjust the win rate based on those variables.
+
+https://horrelltech.github.io/slots-js/
+
 ## 🚀 New Features
 
 ### Multiple Paylines
