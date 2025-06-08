@@ -3,7 +3,7 @@ class SlotMachine {
         this.canvas = document.getElementById('slotCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.balance = 100.00; // Changed from coinCount to balance in dollars
-        this.betAmount = 1.00; // Bet amount in dollars
+        this.betAmount = 0.25; // Bet amount in dollars
         this.minBet = 0.25; // Minimum bet in dollars
         this.maxBet = 25.00; // Maximum bet in dollars
         this.betIncrement = 0.25; // Bet increment in dollars
@@ -28,8 +28,13 @@ class SlotMachine {
         // Canvas base dimensions for aspect ratio scaling in fullscreen
         this.baseCanvasWidth = 600;
         this.baseCanvasHeight = 400;
+
         // Approximate space for UI elements in fullscreen (top, bottom, left, right)
         this.fullscreenPadding = { top: 70, bottom: 80, left: 10, right: 10 };
+
+        // Set initial canvas drawing buffer size
+        this.canvas.width = this.baseCanvasWidth;
+        this.canvas.height = this.baseCanvasHeight;
 
         // New reel mechanics variables
         this.spinSpeed = 16; // Base spin speed (adjustable)
@@ -69,7 +74,9 @@ class SlotMachine {
         this.rowHeight = (this.canvas.height - (this.config.rows - 1) * this.config.spacing) / this.config.rows;        // Free spins configuration
         
         // Free spins configuration
-        this.freeSpinsCount = 0;
+        this.freeSpinsCount = 0; // Remaining free spins
+        this.totalFreeSpinsAwarded = 0; // Total spins awarded in current feature round (for display)
+        this.currentFreeSpinNumber = 0; // Current spin number in the feature (for display)
         this.baseFreeSpins = 10; // Base number of free spins awarded
         this.scatterThreshold = 3; // Minimum scatters needed for free spins
         this.isInFreeSpins = false;
@@ -402,7 +409,8 @@ class SlotMachine {
             reelStop: 'audio/reelStop.mp3',
             winSmall: 'audio/winSmall.wav',
             winBig: 'audio/slotWin.mp3',
-            coin: 'audio/coinHandling.wav'
+            coin: 'audio/coinHandling.wav',
+            slotFeature: 'audio/slotFeature.mp3'
         };
 
         let soundsToLoad = Object.keys(soundFiles).length;
@@ -449,14 +457,18 @@ class SlotMachine {
 
         if (this.isFullscreen) {
             document.body.classList.add('fullscreen-mode');
-            if (gameContainer) gameContainer.classList.add('fullscreen-active'); // Custom class for game container styling if needed
+            if (gameContainer) gameContainer.classList.add('fullscreen-active');
 
-            // Attempt to use browser's fullscreen API for a more immersive experience
+            // Set canvas drawing buffer to base size
+            this.canvas.width = this.baseCanvasWidth;
+            this.canvas.height = this.baseCanvasHeight;
+            this.resizeCanvasForFullscreen(); // This will now set style width/height
+
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(err => {
                     console.warn(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                    // Fallback to CSS-only fullscreen if API fails or is not supported
-                    this.resizeCanvasForFullscreen();
+                    // Fallback to CSS-only fullscreen if API fails
+                    this.resizeCanvasForFullscreen(); // Ensure styles are applied
                 });
             } else if (document.documentElement.mozRequestFullScreen) { /* Firefox */
                 document.documentElement.mozRequestFullScreen();
@@ -465,10 +477,8 @@ class SlotMachine {
             } else if (document.documentElement.msRequestFullscreen) { /* IE/Edge */
                 document.documentElement.msRequestFullscreen();
             } else {
-                 // Fallback for browsers that don't support Fullscreen API
-                this.resizeCanvasForFullscreen();
+                this.resizeCanvasForFullscreen(); // Fallback for browsers that don't support Fullscreen API
             }
-            // Listen for fullscreen changes to call resizeCanvasForFullscreen
             document.addEventListener('fullscreenchange', this.handleFullscreenChange);
             document.addEventListener('webkitfullscreenchange', this.handleFullscreenChange);
             document.addEventListener('mozfullscreenchange', this.handleFullscreenChange);
@@ -486,73 +496,88 @@ class SlotMachine {
             } else if (document.msExitFullscreen) { /* IE/Edge */
                 document.msExitFullscreen();
             }
-            // Fallback or if already exited via API, ensure CSS classes are removed
+            // Ensure CSS classes and styles are removed/reset even if API exit fails or isn't used
             document.body.classList.remove('fullscreen-mode');
             if (gameContainer) gameContainer.classList.remove('fullscreen-active');
             
-            // Remove listeners when exiting fullscreen
+            this.canvas.style.width = ''; // Reset style
+            this.canvas.style.height = ''; // Reset style
+
+            if (this.isMobile) {
+                this.adjustCanvasForMobile(); // This sets canvas.width/height
+            } else {
+                this.canvas.width = this.baseCanvasWidth;
+                this.canvas.height = this.baseCanvasHeight;
+            }
+            
             document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
             document.removeEventListener('webkitfullscreenchange', this.handleFullscreenChange);
             document.removeEventListener('mozfullscreenchange', this.handleFullscreenChange);
             document.removeEventListener('MSFullscreenChange', this.handleFullscreenChange);
 
-            if (this.isMobile) {
-                this.adjustCanvasForMobile();
-            } else {
-                this.canvas.width = this.baseCanvasWidth;
-                this.canvas.height = this.baseCanvasHeight;
-            }
             this.recalculateReelDimensions();
             this.draw();
         }
         this.updateFullscreenButton();
-        this.updateMobileUI(); // Ensure UI updates correctly
+        this.updateMobileUI();
     }
 
     resizeCanvasForFullscreen() {
+        // Keep the actual drawing buffer at base resolution for performance
+        this.canvas.width = this.baseCanvasWidth;
+        this.canvas.height = this.baseCanvasHeight;
+
         let availableWidth = window.innerWidth - this.fullscreenPadding.left - this.fullscreenPadding.right;
         let availableHeight = window.innerHeight - this.fullscreenPadding.top - this.fullscreenPadding.bottom;
         
-        // Special consideration for mobile landscape where bottom controls might take more relative height
-        if (this.isMobile && window.innerWidth > window.innerHeight) { // Mobile landscape
-            availableHeight = window.innerHeight - this.fullscreenPadding.top - (this.fullscreenPadding.bottom * 0.8); // Reduce bottom padding impact
+        if (this.isMobile && window.innerWidth > window.innerHeight) {
+            availableHeight = window.innerHeight - this.fullscreenPadding.top - (this.fullscreenPadding.bottom * 0.8);
         }
-
 
         const aspectRatio = this.baseCanvasWidth / this.baseCanvasHeight;
 
-        let newCanvasWidth = availableWidth;
-        let newCanvasHeight = newCanvasWidth / aspectRatio;
+        let scaledWidth = availableWidth;
+        let scaledHeight = scaledWidth / aspectRatio;
 
-        if (newCanvasHeight > availableHeight) {
-            newCanvasHeight = availableHeight;
-            newCanvasWidth = newCanvasHeight * aspectRatio;
+        if (scaledHeight > availableHeight) {
+            scaledHeight = availableHeight;
+            scaledWidth = scaledHeight * aspectRatio;
         }
 
-        this.canvas.width = Math.max(50, newCanvasWidth); // Ensure a minimum size
-        this.canvas.height = Math.max(50, newCanvasHeight);
+        // Scale the canvas element using CSS
+        this.canvas.style.width = Math.max(50, scaledWidth) + 'px';
+        this.canvas.style.height = Math.max(50, scaledHeight) + 'px';
 
-        this.recalculateReelDimensions();
+        this.recalculateReelDimensions(); // Dimensions are based on canvas.width/height (base resolution)
         this.draw();
     }
 
     recalculateReelDimensions() {
+        // These calculations should use the canvas's actual drawing buffer dimensions
         this.reelWidth = (this.canvas.width - (this.config.reels - 1) * this.config.spacing) / this.config.reels;
         this.rowHeight = (this.canvas.height - (this.config.rows - 1) * this.config.spacing) / this.config.rows;
     }
 
-    handleFullscreenChange = () => { // Use arrow function to bind 'this'
-        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
-            // Entered browser fullscreen
-            this.isFullscreen = true; // Ensure state is correct
+    handleFullscreenChange = () => {
+        const isBrowserFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+
+        if (isBrowserFullscreen) {
+            this.isFullscreen = true;
             document.body.classList.add('fullscreen-mode');
-            this.resizeCanvasForFullscreen();
+            // Set canvas drawing buffer to base size
+            this.canvas.width = this.baseCanvasWidth;
+            this.canvas.height = this.baseCanvasHeight;
+            this.resizeCanvasForFullscreen(); // Applies CSS scaling
         } else {
             // Exited browser fullscreen
-            this.isFullscreen = false; // Ensure state is correct
+            this.isFullscreen = false;
             document.body.classList.remove('fullscreen-mode');
+            
+            this.canvas.style.width = ''; // Reset style
+            this.canvas.style.height = ''; // Reset style
+
             if (this.isMobile) {
-                this.adjustCanvasForMobile();
+                this.adjustCanvasForMobile(); // Sets canvas.width/height
             } else {
                 this.canvas.width = this.baseCanvasWidth;
                 this.canvas.height = this.baseCanvasHeight;
@@ -1160,8 +1185,9 @@ class SlotMachine {
                     ? this.reelStrips[reelIndex][stripIndex] 
                     : this.getBasicRandomSymbol();
                 
-                // Add subtle blur effect during fast spinning (but not during settling)
-                if (state === 'spinning' && this.reelEasingFactors[reelIndex] > 0.8) {
+                // Add subtle blur effect during fast spinning (but not during settling or in fullscreen)
+                const applyBlur = state === 'spinning' && this.reelEasingFactors[reelIndex] > 0.8 && !this.isFullscreen;
+                if (applyBlur) {
                     this.ctx.save();
                     this.ctx.filter = `blur(${Math.min(1.5, (1 - this.reelEasingFactors[reelIndex]) * 6)}px)`;
                 }
@@ -1170,7 +1196,7 @@ class SlotMachine {
                     this.drawSymbol(symbol, reelX, symbolY, this.reelWidth, symbolHeight);
                 }
                 
-                if (state === 'spinning' && this.reelEasingFactors[reelIndex] > 0.8) {
+                if (applyBlur) {
                     this.ctx.restore();
                 }
             }
@@ -1320,30 +1346,45 @@ class SlotMachine {
     }
     
     spin() {
+        if (this.isSpinning) return;
         this.handleFirstInteraction(); 
 
-        if (this.isSpinning) return;
-
-        const totalBet = this.betAmount * this.currentPaylineCount;
-        if (this.balance < totalBet) {
-            this.showToast("💰 Not enough balance for this bet!", 'error', 3000);
-            return;
+        if (this.isInFreeSpins && this.freeSpinsCount > 0) {
+            this.currentFreeSpinNumber++;
+            // No balance check or deduction for free spins
+            this.showToast(`🆓 Free Spin ${this.currentFreeSpinNumber} of ${this.totalFreeSpinsAwarded}`, 'info', 2200);
+        } else {
+            // Regular spin logic
+            const totalBet = this.betAmount * this.currentPaylineCount;
+            if (this.balance < totalBet) {
+                this.showToast("💰 Not enough balance for this bet!", 'error', 3000);
+                return;
+            }
+            this.balance -= totalBet;
+            this.playSound('coin');
         }
-        this.playSound('spinStart');
-        this.balance -= totalBet;
-        this.playSound('coin'); 
+
         this.updateDisplay();
         this.isSpinning = true;
         this.activePaylines = [];
 
         document.getElementById('spinButton').disabled = true;
-        this.showToast("🎰 Spinning reels...", 'info', 2000);
+        // Toast for spinning is now conditional or handled by free spin toast
+        if (!(this.isInFreeSpins && this.freeSpinsCount >= 0)) { // Check >=0 as it's about to be decremented
+             this.showToast("🎰 Spinning reels...", 'info', 1500);
+        }
 
         const currentTime = Date.now();
 
         if (!this.reelSettlingSpeeds) {
             this.reelSettlingSpeeds = [];
         }
+
+        // Decrement freeSpinsCount here, after confirming it's a free spin and before reels start
+        if (this.isInFreeSpins && this.freeSpinsCount >= 0) {
+            this.freeSpinsCount--;
+        }
+        this.updateDisplay(); // Update display with new free spin count if applicable
 
         for (let i = 0; i < this.config.reels; i++) {
             this.reelAnimationState[i] = 'spinning';
@@ -1450,7 +1491,12 @@ class SlotMachine {
                     }
                     visualContinuousPosition_endEase = (visualContinuousPosition_endEase % this.reelStripLength + this.reelStripLength) % this.reelStripLength;
 
-                    let targetSymbolIndex = Math.round(visualContinuousPosition_endEase);
+                    let targetSymbolIndex;
+                    if (originalSpinDirection > 0) { // Spinning "down" (symbols appear to move up the screen)
+                        targetSymbolIndex = Math.ceil(visualContinuousPosition_endEase);
+                    } else { // Spinning "up" (symbols appear to move down the screen) or stationary
+                        targetSymbolIndex = Math.floor(visualContinuousPosition_endEase);
+                    }
                     targetSymbolIndex = (targetSymbolIndex % this.reelStripLength + this.reelStripLength) % this.reelStripLength;
                     
                     this.reelTargetPositions[i] = targetSymbolIndex; 
@@ -1524,12 +1570,37 @@ class SlotMachine {
                 this.stopSound('reelSpin');
             }
             this.updateGridFromReels(); 
-            this.checkWin();
-            this.isSpinning = false;
+            this.checkWin(); // Process wins and potentially award/update free spins
+            this.isSpinning = false; // Mark as not spinning *before* deciding next action
+
             const spinButton = document.getElementById('spinButton');
-            if (spinButton) {
-                spinButton.disabled = false;
+
+            if (this.isInFreeSpins) {
+                if (this.freeSpinsCount > 0) {
+                    // Still have free spins left
+                    if (spinButton) spinButton.disabled = true; // Keep disabled
+                    this.showToast(`Next free spin starting... (${this.freeSpinsCount} remaining)`, 'info', 2000);
+                    setTimeout(() => {
+                        if (this.isInFreeSpins && this.freeSpinsCount > 0) { // Double check state
+                            this.spin();
+                        } else { // Free spins might have ended due to an edge case
+                            this.isInFreeSpins = false;
+                            if (spinButton) spinButton.disabled = false;
+                            this.updateDisplay(); // Update to hide free spin display
+                        }
+                    }, 2500); // Delay for win animations/toasts
+                } else {
+                    // freeSpinsCount is 0 (or less, if something went wrong), so free spins session just ended
+                    this.isInFreeSpins = false;
+                    // totalFreeSpinsAwarded and currentFreeSpinNumber retain values from the completed session for one last display update
+                    this.showToast("🎉 Free Spins Finished! 🎉 Return to normal play.", 'win', 4000);
+                    if (spinButton) spinButton.disabled = false;
+                }
+            } else {
+                // Not in free spins (either never was, or just finished)
+                if (spinButton) spinButton.disabled = false;
             }
+            this.updateDisplay(); // Final display update
         }
     }
 
@@ -1895,72 +1966,89 @@ class SlotMachine {
         let totalWildsUsed = 0;
         this.activePaylines = [];
 
-        if (this.currentPaylineCount === 0) {
+        if (this.currentPaylineCount === 0 && !this.isInFreeSpins) { // Allow 0 paylines for free spins
             this.showToast("ℹ️ No paylines active - no wins possible", 'info', 2000);
-            return;
+            // return; // Don't return if in free spins, as scatter check is important
         }
 
         const scatterCount = this.countScatterSymbols();
-        let freeSpinsAwarded = 0;
+        let newFreeSpinsAwardedThisCheck = 0;
 
         if (scatterCount >= this.scatterThreshold) {
-            freeSpinsAwarded = this.baseFreeSpins;
+            newFreeSpinsAwardedThisCheck = this.baseFreeSpins;
             if (scatterCount > this.scatterThreshold) {
                 const extraScatters = scatterCount - this.scatterThreshold;
-                freeSpinsAwarded += extraScatters * this.baseFreeSpins;
+                newFreeSpinsAwardedThisCheck += extraScatters * this.baseFreeSpins; // Award more for more scatters
             }
-            this.freeSpinsCount += freeSpinsAwarded;
-            // Play a sound for scatter win / free spins awarded
-            this.playSound('winBig'); // Or a dedicated scatter win sound
+
+            if (!this.isInFreeSpins) { // If this is the *start* of a new free spins session
+                this.currentFreeSpinNumber = 0;
+                this.totalFreeSpinsAwarded = 0;
+            }
+            
+            this.isInFreeSpins = true;
+            this.freeSpinsCount += newFreeSpinsAwardedThisCheck;
+            this.totalFreeSpinsAwarded += newFreeSpinsAwardedThisCheck; // Add to the total for this session
+
+            this.playSound('slotFeature'); // Play feature sound for scatters
 
             let scatterMessage = `🌟 <strong>SCATTER BONUS!</strong><br/>`;
-            scatterMessage += `${scatterCount} Scatters = ${freeSpinsAwarded} Free Spins!<br/>`;
+            if (this.totalFreeSpinsAwarded > newFreeSpinsAwardedThisCheck) { // Indicates it's a re-trigger
+                 scatterMessage += `RE-TRIGGER! +${newFreeSpinsAwardedThisCheck} Free Spins!<br/>`;
+            } else {
+                 scatterMessage += `${scatterCount} Scatters = ${newFreeSpinsAwardedThisCheck} Free Spins!<br/>`;
+            }
             scatterMessage += `Total Free Spins: ${this.freeSpinsCount}`;
             this.showToast(scatterMessage, 'warning', 6000);
         }
 
-        for (let i = 0; i < this.currentPaylineCount && i < this.paylines.length; i++) {
-            const payline = this.paylines[i];
-            let lineResult = this.checkPayline(payline);
+        // Check payline wins only if paylines are active or if it's a free spin (wins can still occur)
+        if (this.currentPaylineCount > 0 || this.isInFreeSpins) {
+            for (let i = 0; i < this.currentPaylineCount && i < this.paylines.length; i++) {
+                const payline = this.paylines[i];
+                let lineResult = this.checkPayline(payline);
 
-            if (lineResult.payout > 0) {
-                if (this.isInFreeSpins) {
-                    lineResult.payout *= this.freeSpinMultiplier;
+                if (lineResult.payout > 0) {
+                    if (this.isInFreeSpins) {
+                        lineResult.payout = Math.round(lineResult.payout * this.freeSpinMultiplier);
+                    }
+                    totalWin += lineResult.payout;
+                    totalWildsUsed += lineResult.wildsUsed;
+                    this.activePaylines.push(payline);
                 }
-                totalWin += lineResult.payout;
-                totalWildsUsed += lineResult.wildsUsed;
-                this.activePaylines.push(payline);
             }
         }
+
 
         if (totalWin > 0) {
             this.balance += totalWin;
             this.playSound('coin'); 
 
             const winThreshold = this.betAmount * this.currentPaylineCount * 10; 
-            if (totalWin >= winThreshold && !freeSpinsAwarded) { // Avoid double big win sound if scatter also triggered
+            // Play big win sound if it's a big win and not primarily a scatter feature trigger sound
+            if (totalWin >= winThreshold && newFreeSpinsAwardedThisCheck === 0) { 
                 this.playSound('winBig');
-            } else if (!freeSpinsAwarded) {
+            } else if (newFreeSpinsAwardedThisCheck === 0) { // Play small win if no scatters triggered this check
                 this.playSound('winSmall');
             }
 
-            let message = `🎉 <strong>BIG WIN!</strong><br/>+${this.formatCurrency(totalWin)} on ${this.activePaylines.length} line(s)!`;
+            let message = `🎉 <strong>WIN!</strong><br/>+${this.formatCurrency(totalWin)} on ${this.activePaylines.length} line(s)!`;
             if (totalWildsUsed > 0) {
                 message += `<br/>🃏 ${totalWildsUsed} Wild${totalWildsUsed > 1 ? 's' : ''} helped!`;
             }
             if (this.isInFreeSpins) {
-                message += `<br/>🆓 Free Spin Bonus! (${this.freeSpinsCount} left)`;
+                message += `<br/>💰 x${this.freeSpinMultiplier} Free Spin Multiplier!`;
             }
-            if (totalWin >= 100) { // Assuming 100 is a significant amount
+            if (totalWin >= 100) { 
                 message += '<br/>💎 JACKPOT TERRITORY! 💎';
             }
 
             this.showToast(message, 'win', 5000);
-            this.updateDisplay();
+            // this.updateDisplay(); // updateDisplay is called at the end of animate()
             this.animateWin();
-        } else if (freeSpinsAwarded === 0) {
-            if (this.isInFreeSpins) {
-                this.showToast(`🆓 Free Spin - Keep going! (${this.freeSpinsCount} left)`, 'info', 3000);
+        } else if (newFreeSpinsAwardedThisCheck === 0) { // No regular win AND no new free spins awarded in this check
+            if (this.isInFreeSpins) { // If it was a free spin that resulted in no win
+                // Toast for this is handled by the spin() method or the "next free spin" toast
             } else if (this.winRate < 20) {
                 this.showToast("😞 Tough luck! Low win rate active.", 'error', 3000);
             } else if (this.winRate > 80) {
@@ -1970,7 +2058,18 @@ class SlotMachine {
                     "🎲 Keep spinning!",
                     "🍀 Better luck next time!",
                     "⭐ Almost there!",
-                    "🎰 Try again!"
+                    "🎰 Try again!",
+                    "💪 Don't give up!",
+                    "✨ Luck is on your side!",
+                    "🎉 Spin to win!",
+                    "💫 Every spin counts!",
+                    "🌟 You're doing great!",
+                    "🎯 Stay positive!",
+                    "🚀 Spin for the stars!",
+                    "🌈 Good things come to those who spin!",
+                    "💖 Keep the reels rolling!",
+                    "🎊 Spin your way to victory!",
+                    "🌻 Every spin is a chance!"
                 ];
                 const randomMessage = encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)];
                 this.showToast(randomMessage, 'info', 2500);
@@ -2218,6 +2317,25 @@ class SlotMachine {
         document.getElementById('totalBet').textContent = this.formatCurrency(this.betAmount * this.currentPaylineCount);
         document.getElementById('maxPaylines').textContent = this.maxPaylines;
         document.getElementById('winRateValue').textContent = this.winRate;
+
+        const freeSpinsDisplayEl = document.getElementById('freeSpinsDisplay');
+        const spinButton = document.getElementById('spinButton');
+
+        if (this.isInFreeSpins && this.totalFreeSpinsAwarded > 0) {
+            freeSpinsDisplayEl.innerHTML = `Free Spin: ${this.currentFreeSpinNumber} / ${this.totalFreeSpinsAwarded}<br/>(${this.freeSpinsCount} remaining)`;
+            freeSpinsDisplayEl.style.display = 'block';
+            if (spinButton) spinButton.disabled = true; 
+        } else {
+            freeSpinsDisplayEl.style.display = 'none';
+            if (spinButton && !this.isSpinning) {
+                 spinButton.disabled = false;
+            }
+        }
+        
+        // Ensure spin button is always disabled if isSpinning is true, regardless of free spins
+        if (this.isSpinning && spinButton) {
+            spinButton.disabled = true;
+        }
     }
 
     changeBet(delta) {
@@ -2526,6 +2644,12 @@ class SlotMachine {
         this.betAmount = 1.00;
         this.currentPaylineCount = this.maxPaylines; 
         this.winRate = 50;
+
+        this.isInFreeSpins = false;
+        this.freeSpinsCount = 0;
+        this.totalFreeSpinsAwarded = 0;
+        this.currentFreeSpinNumber = 0;
+
         this.playSound('coin');
         this.updateDisplay();
         const winRateSlider = document.getElementById('winRateSlider');
@@ -2573,7 +2697,12 @@ class SlotMachine {
     adjustCanvasForMobile() { // For NON-FULLSCREEN mobile
         const canvas = this.canvas;
         if (this.isMobile && !this.isFullscreen) {
+            // Reset any fullscreen scaling styles
+            canvas.style.width = '';
+            canvas.style.height = '';
+
             const aspectRatio = this.baseCanvasWidth / this.baseCanvasHeight;
+
             let availableWidth = window.innerWidth - 20; // Small padding
             let availableHeight = window.innerHeight * 0.45; // Max 45% of viewport height for canvas
 
@@ -2589,8 +2718,8 @@ class SlotMachine {
                 newCanvasWidth = newCanvasHeight * aspectRatio;
             }
             
-            canvas.width = Math.max(50, newCanvasWidth);
-            canvas.height = Math.max(50, newCanvasHeight);
+            canvas.width = Math.max(50, newCanvasWidth); // Set drawing buffer size
+            canvas.height = Math.max(50, newCanvasHeight); // Set drawing buffer size
 
             this.recalculateReelDimensions();
             this.draw();
@@ -2725,16 +2854,21 @@ class SlotMachine {
         this.isMobile = this.detectMobile();
 
         if (wasMobile !== this.isMobile) {
-            this.updateMobileUI(); // Update if mobile state changed
+            this.updateMobileUI();
         }
 
         if (this.isFullscreen) {
+            // Ensure canvas drawing buffer is base size before scaling
+            this.canvas.width = this.baseCanvasWidth;
+            this.canvas.height = this.baseCanvasHeight;
             this.resizeCanvasForFullscreen();
         } else {
+            // Reset styles that might have been applied by fullscreen
+            this.canvas.style.width = '';
+            this.canvas.style.height = '';
             if (this.isMobile) {
                 this.adjustCanvasForMobile();
             } else {
-                // Desktop non-fullscreen
                 this.canvas.width = this.baseCanvasWidth;
                 this.canvas.height = this.baseCanvasHeight;
                 this.recalculateReelDimensions();
@@ -2968,16 +3102,24 @@ window.addEventListener('load', () => {
     if (slotMachine.isMobile) {
         document.body.classList.add('mobile-device');
         
-        // Ensure viewport meta tag is optimal (or advise user to add it in HTML)
         let viewport = document.querySelector('meta[name="viewport"]');
         if (!viewport) {
             viewport = document.createElement('meta');
             viewport.name = 'viewport';
             document.head.appendChild(viewport);
         }
-        // Set more restrictive content for game-like experience
         viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
     }
+    // Initial canvas setup (non-fullscreen)
+    if (slotMachine.isMobile) {
+        slotMachine.adjustCanvasForMobile();
+    } else {
+        slotMachine.canvas.width = slotMachine.baseCanvasWidth;
+        slotMachine.canvas.height = slotMachine.baseCanvasHeight;
+        slotMachine.recalculateReelDimensions();
+    }
+    
     slotMachine.updateMobileUI(); // Initial UI setup
-    slotMachine.handleResize(); // Initial resize to set canvas correctly
+    // slotMachine.handleResize(); // handleResize is now more comprehensive, let initial setup be direct
+    slotMachine.draw();
 });

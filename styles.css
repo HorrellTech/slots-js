@@ -745,6 +745,61 @@ h1 {
     display: none !important;
 }
 
+.total-bet-display {
+    color: #e74c3c;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin: 10px 0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.free-spins-display {
+    color: #2ecc71; /* Bright green for free spins */
+    font-size: 1.1em;
+    font-weight: bold;
+    margin: 10px auto; /* Centered with auto margins */
+    padding: 8px 12px;
+    background: rgba(39, 174, 96, 0.2); /* Light green background */
+    border: 1px solid #2ecc71;
+    border-radius: 8px;
+    text-align: center;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+    max-width: 300px; /* Limit width for better appearance */
+}
+
+/* Fullscreen mode toast positioning */
+.fullscreen-mode .toast-container {
+    top: 80px; /* Position below coin display */
+    right: 50%;
+    transform: translateX(50%);
+    max-width: 90vw;
+}
+.fullscreen-mode .toast {
+    font-size: clamp(0.8em, 3vw, 1em);
+}
+
+.fullscreen-mode .free-spins-display {
+    position: fixed;
+    top: 70px; /* Adjust if needed, below coin display */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    font-size: clamp(1em, 3.5vw, 1.3em);
+    padding: 8px 15px;
+    background: rgba(39, 174, 96, 0.85); /* Darker for better visibility */
+    color: white;
+    border-color: #fff;
+    min-width: 200px; /* Ensure it has some width */
+}
+
+total-bet-display {
+    color: #e74c3c;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin: 10px 0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
 /* Mobile specific styles for better layout */
 @media (max-width: 768px) {
     body {
